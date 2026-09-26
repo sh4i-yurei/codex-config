@@ -1,0 +1,21 @@
+default_permissions = "mark"
+
+[permissions.mark]
+description = "Project work with writes limited to the current workspace and project records."
+extends = ":workspace"
+
+[permissions.mark.workspace_roots]
+"~/Documents/Second_Brain/10_Projects" = true
+"~/Documents/Second_Brain/20_Buildlogs" = true
+
+[permissions.mark.filesystem]
+"~/Documents/Second_Brain" = "read"
+"~/Documents/Second_Brain/10_Projects" = "write"
+"~/Documents/Second_Brain/20_Buildlogs" = "write"
+
+[permissions.mark.network]
+enabled = true
+
+[memories]
+generate_memories = false
+use_memories = false
