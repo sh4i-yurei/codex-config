@@ -17,6 +17,9 @@ backups. Repeating setup leaves correct links alone.
 | `skills/` | `~/.agents/skills` |
 
 The base `~/.codex/config.toml` belongs to the machine and is never replaced by a link.
+Setup makes plain `codex` use the built-in `:danger-full-access` permission profile.
+Run `codex -p mark` to select the linked `mark` profile, which limits writes to
+the workspace and project records. The `-p` flag selects a config profile.
 The root `AGENTS.md` holds this repository's instructions. Global instructions live in
 `global-rules.md` so repository instructions stay local to this project.
 

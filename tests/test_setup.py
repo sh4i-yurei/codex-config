@@ -27,7 +27,9 @@ class SetupTests(unittest.TestCase):
             second = subprocess.run(command, text=True, capture_output=True, check=True)
 
             self.assertIn("Configured:", first.stdout)
-            self.assertIn("already has the mark defaults", second.stdout)
+            self.assertIn(
+                "already has the full-access default and mark profile", second.stdout
+            )
             self.assertEqual(after_first, config.read_text())
             self.assertEqual(len(list(config.parent.glob("config.toml.bak-*"))), 1)
             self.assertEqual(
@@ -36,7 +38,7 @@ class SetupTests(unittest.TestCase):
             parsed = tomllib.loads(after_first)
             self.assertEqual(parsed["model"], "gpt-6-sol")
             self.assertTrue(parsed["tui"]["screen_reader_detection_done"])
-            self.assertEqual(parsed["default_permissions"], "mark")
+            self.assertEqual(parsed["default_permissions"], ":danger-full-access")
             self.assertEqual(parsed["permissions"]["mark"]["extends"], ":workspace")
             self.assertEqual(
                 parsed["memories"], {"generate_memories": False, "use_memories": False}
@@ -60,6 +62,7 @@ class SetupTests(unittest.TestCase):
             subprocess.run(command, capture_output=True, text=True, check=True)
             self.assertEqual(first, config.read_text())
             parsed = tomllib.loads(first)
+            self.assertEqual(parsed["default_permissions"], ":danger-full-access")
             self.assertEqual(parsed["permissions"]["other"]["extends"], ":read-only")
             self.assertTrue(parsed["memories"]["disable_on_external_context"])
             self.assertFalse(parsed["memories"]["use_memories"])
@@ -78,7 +81,9 @@ class SetupTests(unittest.TestCase):
             before = config.read_text()
             second = subprocess.run(command, capture_output=True, text=True, check=True)
             self.assertEqual(config.read_text(), before)
-            self.assertIn("already has the mark defaults", second.stdout)
+            self.assertIn(
+                "already has the full-access default and mark profile", second.stdout
+            )
 
     def test_inline_and_dotted_machine_settings_merge(self):
         examples = (
@@ -107,6 +112,7 @@ class SetupTests(unittest.TestCase):
                 subprocess.run(command, capture_output=True, text=True, check=True)
                 self.assertEqual(first, config.read_text())
                 parsed = tomllib.loads(first)
+                self.assertEqual(parsed["default_permissions"], ":danger-full-access")
                 self.assertEqual(parsed["permissions"]["mark"]["extends"], ":workspace")
                 self.assertFalse(parsed["memories"]["use_memories"])
                 self.assertFalse(parsed["memories"]["generate_memories"])

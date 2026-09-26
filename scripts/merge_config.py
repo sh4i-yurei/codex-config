@@ -153,9 +153,7 @@ def merged_config(base_text: str, profile_text: str) -> str:
                     f"{json.dumps(key)} = {toml_value(item)}"
                     for key, item in value.items()
                 )
-    result = (
-        f'default_permissions = "mark"\n\n{other}\n\n{permission_tables.rstrip()}\n'
-    )
+    result = f'default_permissions = ":danger-full-access"\n\n{other}\n\n{permission_tables.rstrip()}\n'
     tomllib.loads(result)
     return result
 
@@ -171,18 +169,18 @@ def install_profile_config(home: Path, profile_path: Path) -> None:
     current = tomllib.loads(old)
     desired = tomllib.loads(profile_text)
     if (
-        current.get("default_permissions") == "mark"
+        current.get("default_permissions") == ":danger-full-access"
         and current.get("permissions", {}).get("mark") == desired["permissions"]["mark"]
         and all(
             current.get("memories", {}).get(key) is value
             for key, value in desired["memories"].items()
         )
     ):
-        print(f"OK: {config} already has the mark defaults")
+        print(f"OK: {config} already has the full-access default and mark profile")
         return
     new = merged_config(old, profile_text)
     if new == old:
-        print(f"OK: {config} already has the mark defaults")
+        print(f"OK: {config} already has the full-access default and mark profile")
         return
     config.parent.mkdir(parents=True, exist_ok=True)
     if config.exists():
@@ -202,5 +200,5 @@ def install_profile_config(home: Path, profile_path: Path) -> None:
     finally:
         temporary.unlink(missing_ok=True)
     print(
-        f"Configured: {config} uses the mark permission profile and keeps machine settings"
+        f"Configured: {config} defaults to full access and keeps the mark profile and machine settings"
     )
