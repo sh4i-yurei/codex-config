@@ -1,7 +1,7 @@
 """Link the available configuration pieces without discarding existing files."""
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from merge_config import install_profile_config
@@ -17,7 +17,7 @@ LINKS = {
 
 
 def backup(path):
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
     target = path.with_name(f"{path.name}.bak-{stamp}")
     path.rename(target)
     print(f"Backup: {target}")
@@ -43,7 +43,12 @@ def install(home):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--home", type=Path, default=Path.home(), help="Target home (also used for isolated tests)")
+    parser.add_argument(
+        "--home",
+        type=Path,
+        default=Path.home(),
+        help="Target home (also used for isolated tests)",
+    )
     args = parser.parse_args()
     install(args.home.expanduser().resolve())
 
