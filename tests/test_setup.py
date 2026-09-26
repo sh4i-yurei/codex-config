@@ -90,6 +90,7 @@ class SetupTests(unittest.TestCase):
             '"default_permissions" = ":workspace"\n[memories]\n"use_memories" = true\n[permissions."mark"]\nextends = ":read-only"\n',
             'permissions = { mark = { extends = ":read-only" }, "my.profile" = { extends = ":workspace" } }\n',
             '[permissions.mark]\nextends = ":read-only"\n[[my_tools]]\nname = "keep"\n',
+            'developer_instructions = """\n[memories]\nuse_memories = true\n[permissions.mark]\nkeep this text\n"""\n[permissions.mark]\nextends = ":read-only"\n',
         )
         for original in examples:
             with (
@@ -121,6 +122,11 @@ class SetupTests(unittest.TestCase):
                     )
                 if "my_tools" in original:
                     self.assertEqual(parsed["my_tools"], [{"name": "keep"}])
+                if "developer_instructions" in original:
+                    self.assertEqual(
+                        parsed["developer_instructions"],
+                        tomllib.loads(original)["developer_instructions"],
+                    )
 
 
 if __name__ == "__main__":

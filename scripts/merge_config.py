@@ -42,6 +42,13 @@ def assignment_key(line: str) -> tuple[str, ...] | None:
     return None
 
 
+def multiline_opening(line: str) -> str | None:
+    match = re.search(r"=\s*(\"\"\"|''')", line)
+    if match and line.count(match.group(1), match.start(1)) % 2:
+        return match.group(1)
+    return None
+
+
 def toml_value(value):
     if isinstance(value, bool):
         return "true" if value else "false"
@@ -76,7 +83,14 @@ def merged_config(base_text: str, profile_text: str) -> str:
     section = ()
     has_memories = False
     inline_permissions = False
+    multiline = None
     for line in base_text.splitlines(keepends=True):
+        if multiline:
+            if multiline in line:
+                multiline = None
+            if section[:2] != ("permissions", "mark"):
+                kept.append(line)
+            continue
         array_match = ARRAY_SECTION.match(line)
         if array_match:
             section = key_parts(array_match.group(1))
@@ -92,6 +106,8 @@ def merged_config(base_text: str, profile_text: str) -> str:
                 continue
             if section[:2] == ("permissions", "mark"):
                 continue
+        if "=" in line and not line.lstrip().startswith("#"):
+            multiline = multiline_opening(line)
         if section[:2] == ("permissions", "mark"):
             continue
         key = (
