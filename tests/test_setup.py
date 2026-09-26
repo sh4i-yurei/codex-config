@@ -87,6 +87,8 @@ class SetupTests(unittest.TestCase):
             '[permissions]\nmark = { extends = ":read-only" }\nother = { extends = ":workspace" }\n',
             'permissions.mark = { extends = ":read-only" }\n',
             'permissions = { mark = { extends = ":read-only" }, other = { extends = ":workspace" } }\n',
+            '"default_permissions" = ":workspace"\n[memories]\n"use_memories" = true\n[permissions."mark"]\nextends = ":read-only"\n',
+            'permissions = { mark = { extends = ":read-only" }, "my.profile" = { extends = ":workspace" } }\n',
         )
         for original in examples:
             with (
@@ -111,6 +113,10 @@ class SetupTests(unittest.TestCase):
                 if "other" in original:
                     self.assertEqual(
                         parsed["permissions"]["other"]["extends"], ":workspace"
+                    )
+                if "my.profile" in original:
+                    self.assertEqual(
+                        parsed["permissions"]["my.profile"]["extends"], ":workspace"
                     )
 
 

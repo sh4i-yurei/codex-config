@@ -11,10 +11,34 @@ from pathlib import Path
 import tomllib
 
 SECTION = re.compile(r"^\s*\[([^]]+)\]\s*(?:#.*)?$")
-KEY = re.compile(r"^\s*([A-Za-z_][A-Za-z_0-9]*)\s*=")
-MANAGED_DOTTED = re.compile(
-    r"^\s*(?:memories|permissions\.mark)(?:\.[A-Za-z_][A-Za-z_0-9]*)?\s*="
-)
+
+
+def key_parts(raw: str) -> tuple[str, ...]:
+    """Use the TOML parser to distinguish dotted keys from quoted names."""
+    node = tomllib.loads(f"{raw} = 1")
+    parts = []
+    while isinstance(node, dict):
+        name, node = next(iter(node.items()))
+        parts.append(name)
+    return tuple(parts)
+
+
+def assignment_key(line: str) -> tuple[str, ...] | None:
+    quoted = None
+    escaped = False
+    for index, char in enumerate(line):
+        if escaped:
+            escaped = False
+        elif char == "\\" and quoted == '"':
+            escaped = True
+        elif char in ("'", '"'):
+            if quoted is None:
+                quoted = char
+            elif quoted == char:
+                quoted = None
+        elif char == "=" and quoted is None:
+            return key_parts(line[:index].strip())
+    return None
 
 
 def toml_value(value):
@@ -31,7 +55,9 @@ def toml_value(value):
     if isinstance(value, dict):
         return (
             "{ "
-            + ", ".join(f"{key} = {toml_value(item)}" for key, item in value.items())
+            + ", ".join(
+                f"{json.dumps(key)} = {toml_value(item)}" for key, item in value.items()
+            )
             + " }"
         )
     raise TypeError(f"Cannot write TOML value of type {type(value).__name__}")
@@ -46,34 +72,43 @@ def merged_config(base_text: str, profile_text: str) -> str:
     base = tomllib.loads(base_text)
 
     kept = []
-    section = ""
+    section = ()
     has_memories = False
+    inline_permissions = False
     for line in base_text.splitlines(keepends=True):
         match = SECTION.match(line)
         if match:
-            section = match.group(1)
-            if section == "memories":
+            section = key_parts(match.group(1))
+            if section == ("memories",):
                 has_memories = True
                 kept.append(line)
                 kept.append("generate_memories = false\nuse_memories = false\n")
                 continue
-            if section == "permissions.mark" or section.startswith("permissions.mark."):
+            if section[:2] == ("permissions", "mark"):
                 continue
-        if section == "permissions.mark" or section.startswith("permissions.mark."):
+        if section[:2] == ("permissions", "mark"):
             continue
-        key = KEY.match(line)
-        if key and section == "" and key.group(1) == "default_permissions":
-            continue
-        if section == "" and MANAGED_DOTTED.match(line):
-            continue
-        if key and section == "" and key.group(1) in {"memories", "permissions"}:
-            continue
-        if key and section == "permissions" and key.group(1) == "mark":
+        key = (
+            assignment_key(line)
+            if "=" in line and not line.lstrip().startswith("#")
+            else None
+        )
+        if section == () and key == ("default_permissions",):
             continue
         if (
-            key
-            and section == "memories"
-            and key.group(1) in {"generate_memories", "use_memories"}
+            section == ()
+            and key
+            and (key[:1] == ("memories",) or key[:2] == ("permissions", "mark"))
+        ):
+            continue
+        if section == () and key == ("permissions",):
+            inline_permissions = True
+            continue
+        if section == ("permissions",) and key == ("mark",):
+            continue
+        if section == ("memories",) and key in (
+            ("generate_memories",),
+            ("use_memories",),
         ):
             continue
         kept.append(line)
@@ -88,12 +123,13 @@ def merged_config(base_text: str, profile_text: str) -> str:
             if key not in {"generate_memories", "use_memories"}
         )
         other = f"{other}\n\n[memories]{memory_table.rstrip()}{extra_memories}"
-    if re.search(r"^\s*permissions\s*=", base_text, re.MULTILINE):
+    if inline_permissions:
         for name, value in base.get("permissions", {}).items():
             if name != "mark":
-                other += f"\n\n[permissions.{name}]\n"
+                other += f"\n\n[permissions.{json.dumps(name)}]\n"
                 other += "\n".join(
-                    f"{key} = {toml_value(item)}" for key, item in value.items()
+                    f"{json.dumps(key)} = {toml_value(item)}"
+                    for key, item in value.items()
                 )
     result = (
         f'default_permissions = "mark"\n\n{other}\n\n{permission_tables.rstrip()}\n'
