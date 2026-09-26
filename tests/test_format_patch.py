@@ -115,6 +115,40 @@ class FormatPatchTests(unittest.TestCase):
             self.assertEqual(result.stdout, "")
             self.assertEqual(edited.read_text(), bad_style)
 
+    @unittest.skipUnless(shutil.which("rustfmt"), "rustfmt is required for this check")
+    def test_rust_formatter_uses_cargo_edition(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Cargo.toml").write_text(
+                '[package]\nname = "example"\nversion = "0.1.0"\nedition = "2021"\n'
+            )
+            source = root / "src"
+            source.mkdir()
+            edited = source / "main.rs"
+            edited.write_text('async fn main(){println!("hi");}\n')
+            event = {
+                "tool_name": "apply_patch",
+                "tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM main.rs\n",
+                "cwd": str(root),
+                "tool_input": {
+                    "command": f"*** Begin Patch\n*** Update File: {edited}\n*** End Patch"
+                },
+            }
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT)],
+                input=json.dumps(event),
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            self.assertEqual(result.stdout, "")
+            self.assertIn("async fn main() {", edited.read_text())
+            subprocess.run(
+                ["rustfmt", "--edition", "2021", "--check", str(edited)],
+                capture_output=True,
+                check=True,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,15 +1,40 @@
 """Copy the versioned permission settings into a machine's Codex config."""
 
+import json
 import os
 import re
 import shutil
 import tempfile
-import tomllib
-from datetime import datetime
+from datetime import date, datetime, time, timezone
 from pathlib import Path
+
+import tomllib
 
 SECTION = re.compile(r"^\s*\[([^]]+)\]\s*(?:#.*)?$")
 KEY = re.compile(r"^\s*([A-Za-z_][A-Za-z_0-9]*)\s*=")
+MANAGED_DOTTED = re.compile(
+    r"^\s*(?:memories|permissions\.mark)(?:\.[A-Za-z_][A-Za-z_0-9]*)?\s*="
+)
+
+
+def toml_value(value):
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (datetime, date, time)):
+        return value.isoformat()
+    if isinstance(value, str):
+        return json.dumps(value)
+    if isinstance(value, (int, float)):
+        return repr(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(toml_value(item) for item in value) + "]"
+    if isinstance(value, dict):
+        return (
+            "{ "
+            + ", ".join(f"{key} = {toml_value(item)}" for key, item in value.items())
+            + " }"
+        )
+    raise TypeError(f"Cannot write TOML value of type {type(value).__name__}")
 
 
 def merged_config(base_text: str, profile_text: str) -> str:
@@ -18,7 +43,7 @@ def merged_config(base_text: str, profile_text: str) -> str:
         raise ValueError("mark.config.toml must select the mark permission profile")
     if profile.get("memories") != {"generate_memories": False, "use_memories": False}:
         raise ValueError("mark.config.toml must disable both memory operations")
-    tomllib.loads(base_text)
+    base = tomllib.loads(base_text)
 
     kept = []
     section = ""
@@ -39,16 +64,40 @@ def merged_config(base_text: str, profile_text: str) -> str:
         key = KEY.match(line)
         if key and section == "" and key.group(1) == "default_permissions":
             continue
-        if key and section == "memories" and key.group(1) in {"generate_memories", "use_memories"}:
+        if section == "" and MANAGED_DOTTED.match(line):
+            continue
+        if key and section == "" and key.group(1) in {"memories", "permissions"}:
+            continue
+        if key and section == "permissions" and key.group(1) == "mark":
+            continue
+        if (
+            key
+            and section == "memories"
+            and key.group(1) in {"generate_memories", "use_memories"}
+        ):
             continue
         kept.append(line)
 
     other = "".join(kept).strip("\n")
-    permissions_part = profile_text[profile_text.index("[permissions.mark]"):]
+    permissions_part = profile_text[profile_text.index("[permissions.mark]") :]
     permission_tables, memory_table = permissions_part.split("[memories]", 1)
     if not has_memories:
-        other = f"{other}\n\n[memories]{memory_table.rstrip()}"
-    result = f'default_permissions = "mark"\n\n{other}\n\n{permission_tables.rstrip()}\n'
+        extra_memories = "".join(
+            f"\n{key} = {toml_value(value)}"
+            for key, value in base.get("memories", {}).items()
+            if key not in {"generate_memories", "use_memories"}
+        )
+        other = f"{other}\n\n[memories]{memory_table.rstrip()}{extra_memories}"
+    if re.search(r"^\s*permissions\s*=", base_text, re.MULTILINE):
+        for name, value in base.get("permissions", {}).items():
+            if name != "mark":
+                other += f"\n\n[permissions.{name}]\n"
+                other += "\n".join(
+                    f"{key} = {toml_value(item)}" for key, item in value.items()
+                )
+    result = (
+        f'default_permissions = "mark"\n\n{other}\n\n{permission_tables.rstrip()}\n'
+    )
     tomllib.loads(result)
     return result
 
@@ -66,7 +115,10 @@ def install_profile_config(home: Path, profile_path: Path) -> None:
     if (
         current.get("default_permissions") == "mark"
         and current.get("permissions", {}).get("mark") == desired["permissions"]["mark"]
-        and all(current.get("memories", {}).get(key) is value for key, value in desired["memories"].items())
+        and all(
+            current.get("memories", {}).get(key) is value
+            for key, value in desired["memories"].items()
+        )
     ):
         print(f"OK: {config} already has the mark defaults")
         return
@@ -76,12 +128,14 @@ def install_profile_config(home: Path, profile_path: Path) -> None:
         return
     config.parent.mkdir(parents=True, exist_ok=True)
     if config.exists():
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
         backup = config.with_name(f"config.toml.bak-{stamp}")
         shutil.copy2(config, backup)
         print(f"Backup: {backup}")
     mode = config.stat().st_mode if config.exists() else 0o600
-    with tempfile.NamedTemporaryFile(mode="w", dir=config.parent, prefix="config.toml.", delete=False) as handle:
+    with tempfile.NamedTemporaryFile(
+        mode="w", dir=config.parent, prefix="config.toml.", delete=False
+    ) as handle:
         temporary = Path(handle.name)
         handle.write(new)
     try:
@@ -89,4 +143,6 @@ def install_profile_config(home: Path, profile_path: Path) -> None:
         temporary.replace(config)
     finally:
         temporary.unlink(missing_ok=True)
-    print(f"Configured: {config} uses the mark permission profile and keeps machine settings")
+    print(
+        f"Configured: {config} uses the mark permission profile and keeps machine settings"
+    )

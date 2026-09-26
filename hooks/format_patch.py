@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import tomllib
+
 FORMATTERS = {
     ".py": ("ruff", "format"),
     ".rs": ("rustfmt",),
@@ -45,6 +47,37 @@ def patch_paths(command: str, cwd: Path):
     return dict.fromkeys(paths)
 
 
+def rust_edition(path: Path) -> str:
+    """Read a crate's edition, including an inherited workspace edition."""
+    workspace_edition = None
+    package_edition = None
+    found_package = False
+    for folder in (path.parent, *path.parents):
+        manifest = folder / "Cargo.toml"
+        if not manifest.is_file():
+            continue
+        try:
+            with manifest.open("rb") as stream:
+                config = tomllib.load(stream)
+        except (OSError, tomllib.TOMLDecodeError):
+            continue
+        workspace_edition = workspace_edition or config.get("workspace", {}).get(
+            "package", {}
+        ).get("edition")
+        if not found_package and "package" in config:
+            found_package = True
+            package_edition = config["package"].get("edition", "2015")
+            if isinstance(package_edition, str):
+                return package_edition
+    if (
+        isinstance(package_edition, dict)
+        and package_edition.get("workspace") is True
+        and isinstance(workspace_edition, str)
+    ):
+        return workspace_edition
+    return "2015" if found_package else "2021"
+
+
 def format_file(path: Path, cwd: Path) -> None:
     if not path.is_file():
         return
@@ -59,8 +92,11 @@ def format_file(path: Path, cwd: Path) -> None:
         print(f"Unable to format {path}: {formatter[0]} is not installed")
         return
     try:
+        arguments = [executable, *formatter[1:]]
+        if path.suffix == ".rs":
+            arguments.extend(("--edition", rust_edition(path)))
         result = subprocess.run(
-            [executable, *formatter[1:], str(path)],
+            [*arguments, str(path)],
             cwd=cwd,
             capture_output=True,
             text=True,
