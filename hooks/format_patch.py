@@ -37,7 +37,7 @@ def patch_paths(command: str, cwd: Path):
     for line in command.splitlines():
         for marker in ("*** Add File: ", "*** Update File: ", "*** Move to: "):
             if line.startswith(marker):
-                raw = line[len(marker):].strip()
+                raw = line[len(marker) :].strip()
                 if raw:
                     path = Path(raw)
                     paths.append(path if path.is_absolute() else cwd / path)
@@ -65,13 +65,16 @@ def format_file(path: Path, cwd: Path) -> None:
             capture_output=True,
             text=True,
             timeout=30,
+            check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         print(f"Unable to format {path}: {type(exc).__name__}")
         return
     if result.returncode:
         detail = (result.stderr or result.stdout).strip().splitlines()
-        print(f"Unable to format {path}: {detail[0] if detail else f'exit {result.returncode}'}")
+        print(
+            f"Unable to format {path}: {detail[0] if detail else f'exit {result.returncode}'}"
+        )
 
 
 def main() -> None:
@@ -79,11 +82,18 @@ def main() -> None:
         event = json.load(sys.stdin)
         if event.get("tool_name") != "apply_patch":
             return
+        response = event.get("tool_response", "")
+        if (
+            not isinstance(response, str)
+            or not response.startswith("Exit code: 0\n")
+            or "Success. Updated the following files:" not in response
+        ):
+            return
         cwd = Path(event.get("cwd") or Path.cwd())
         command = event.get("tool_input", {}).get("command", "")
         for path in patch_paths(command, cwd):
             format_file(path, cwd)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(f"Unable to format patch: {type(exc).__name__}")
 
 

@@ -31,31 +31,33 @@ def environment_line() -> str:
     return "Environment: on the host; development tools, bw and Node live in dev."
 
 
-def folder_instructions(cwd: Path, root: Path | None) -> Path | None:
+def folder_instructions(cwd: Path, root: Path | None) -> list[Path]:
     if root is None:
         candidate = cwd / "AGENTS.md"
-        return candidate if candidate.exists() else None
+        return [candidate] if candidate.exists() else []
+    found = []
     for folder in (cwd, *cwd.parents):
         candidate = folder / "AGENTS.md"
         if candidate.exists():
-            return candidate
+            found.append(candidate)
         if folder == root:
             break
-    return None
+    return found
 
 
-def project_line(instructions: Path | None) -> str:
-    if instructions is None:
+def project_line(instructions: list[Path]) -> str:
+    if not instructions:
         return "Project note: none named. Buildlog: none named."
-    try:
-        content = instructions.read_text()
-    except OSError:
-        return "Project note: instruction file unreadable. Buildlog: instruction file unreadable."
     values = {}
-    for line in content.splitlines():
-        for label in ("Project note", "Buildlog"):
-            if line.startswith(f"{label}:"):
-                values[label] = line.partition(":")[2].strip() or "none named"
+    for instruction in instructions:
+        try:
+            content = instruction.read_text()
+        except OSError:
+            continue
+        for line in content.splitlines():
+            for label in ("Project note", "Buildlog"):
+                if label not in values and line.startswith(f"{label}:"):
+                    values[label] = line.partition(":")[2].strip() or "none named"
     return f"Project note: {values.get('Project note', 'none named')}. Buildlog: {values.get('Buildlog', 'none named')}."
 
 
@@ -76,9 +78,18 @@ def main() -> None:
         event = json.load(sys.stdin)
         cwd = Path(event.get("cwd") or Path.cwd())
         output = context(cwd)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         output = f"Orientation unavailable: {type(exc).__name__}."
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": output}}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "SessionStart",
+                    "additionalContext": output,
+                }
+            }
+        )
+    )
 
 
 if __name__ == "__main__":
