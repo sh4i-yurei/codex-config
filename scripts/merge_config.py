@@ -11,6 +11,7 @@ from pathlib import Path
 import tomllib
 
 SECTION = re.compile(r"^\s*\[([^]]+)\]\s*(?:#.*)?$")
+ARRAY_SECTION = re.compile(r"^\s*\[\[([^]]+)\]\]\s*(?:#.*)?$")
 
 
 def key_parts(raw: str) -> tuple[str, ...]:
@@ -76,6 +77,11 @@ def merged_config(base_text: str, profile_text: str) -> str:
     has_memories = False
     inline_permissions = False
     for line in base_text.splitlines(keepends=True):
+        array_match = ARRAY_SECTION.match(line)
+        if array_match:
+            section = key_parts(array_match.group(1))
+            kept.append(line)
+            continue
         match = SECTION.match(line)
         if match:
             section = key_parts(match.group(1))

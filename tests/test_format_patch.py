@@ -125,7 +125,10 @@ class FormatPatchTests(unittest.TestCase):
             source = root / "src"
             source.mkdir()
             edited = source / "main.rs"
-            edited.write_text('async fn main(){println!("hi");}\n')
+            neighbor = source / "child.rs"
+            neighbor_text = 'pub fn hello(){println!("hi");}\n'
+            neighbor.write_text(neighbor_text)
+            edited.write_text('mod child;\nasync fn main(){println!("hi");}\n')
             event = {
                 "tool_name": "apply_patch",
                 "tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM main.rs\n",
@@ -143,8 +146,17 @@ class FormatPatchTests(unittest.TestCase):
             )
             self.assertEqual(result.stdout, "")
             self.assertIn("async fn main() {", edited.read_text())
+            self.assertEqual(neighbor.read_text(), neighbor_text)
             subprocess.run(
-                ["rustfmt", "--edition", "2021", "--check", str(edited)],
+                [
+                    "rustfmt",
+                    "--edition",
+                    "2021",
+                    "--config",
+                    "skip_children=true",
+                    "--check",
+                    str(edited),
+                ],
                 capture_output=True,
                 check=True,
             )

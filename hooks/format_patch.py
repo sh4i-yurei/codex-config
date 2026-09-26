@@ -94,7 +94,16 @@ def format_file(path: Path, cwd: Path) -> None:
     try:
         arguments = [executable, *formatter[1:]]
         if path.suffix == ".rs":
-            arguments.extend(("--edition", rust_edition(path)))
+            arguments.extend(
+                (
+                    "--edition",
+                    rust_edition(path),
+                    "--config",
+                    "skip_children=true",
+                    "--emit",
+                    "stdout",
+                )
+            )
         result = subprocess.run(
             [*arguments, str(path)],
             cwd=cwd,
@@ -111,6 +120,12 @@ def format_file(path: Path, cwd: Path) -> None:
         print(
             f"Unable to format {path}: {detail[0] if detail else f'exit {result.returncode}'}"
         )
+    elif path.suffix == ".rs":
+        marker = f"{path}:\n\n"
+        if not result.stdout.startswith(marker):
+            print(f"Unable to format {path}: rustfmt did not return only this file")
+            return
+        path.write_text(result.stdout[len(marker) :])
 
 
 def main() -> None:
