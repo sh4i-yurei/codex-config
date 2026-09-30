@@ -17,6 +17,12 @@ being worked on: its project note in `10_Projects/` and its open buildlog in
 authorizes an edit. Access to those two folders does not authorize editing other projects.
 If there is no open buildlog, ask before creating one.
 
+Handoffs to and from Claude are notes in `~/Documents/Second_Brain/05_Agents/handoffs/`:
+goals, review requests and their verdicts, "resume" messages and status reports. The rules
+are in `05_Agents/README.md`, and you may always create and edit handoffs there. Create no
+other files outside the repository's own work without Mark's approval: no goal, handoff,
+review, schema or output files in `~/.local/state` or anywhere else.
+
 Before writing the buildlog, read `20_Buildlogs/README.md`. Entries are chronological,
 written in Mark's first person during the work, with real command output and error text.
 For failures use Saw, Cause and Fix in that order. Distinguish an unknown cause from a
