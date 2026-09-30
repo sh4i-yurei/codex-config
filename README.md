@@ -20,6 +20,8 @@ The base `~/.codex/config.toml` belongs to the machine and is never replaced by 
 Setup makes plain `codex` use the built-in `:danger-full-access` permission profile.
 Run `codex -p mark` to select the linked `mark` profile, which limits writes to
 the workspace and project records. The `-p` flag selects a config profile.
+Setup also copies the memory settings in `mark.config.toml` into the base config. Codex's
+memory feature itself is switched on once per machine with `codex features enable memories`.
 The root `AGENTS.md` holds this repository's instructions. Global instructions live in
 `global-rules.md` so repository instructions stay local to this project.
 

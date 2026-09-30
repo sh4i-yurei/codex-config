@@ -1,5 +1,6 @@
 """Exercise the installer against disposable home directories."""
 
+import importlib.util
 import subprocess
 import tempfile
 import unittest
@@ -8,6 +9,11 @@ from pathlib import Path
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
+PROFILE_MEMORIES = tomllib.loads((ROOT / "mark.config.toml").read_text())["memories"]
+
+
+def profile_memories_in(parsed):
+    return {key: parsed["memories"][key] for key in PROFILE_MEMORIES}
 
 
 class SetupTests(unittest.TestCase):
@@ -40,9 +46,7 @@ class SetupTests(unittest.TestCase):
             self.assertTrue(parsed["tui"]["screen_reader_detection_done"])
             self.assertEqual(parsed["default_permissions"], ":danger-full-access")
             self.assertEqual(parsed["permissions"]["mark"]["extends"], ":workspace")
-            self.assertEqual(
-                parsed["memories"], {"generate_memories": False, "use_memories": False}
-            )
+            self.assertEqual(parsed["memories"], PROFILE_MEMORIES)
             for name in ("AGENTS.md", "hooks.json", "hooks", "mark.config.toml"):
                 self.assertTrue((home / ".codex" / name).is_symlink())
 
@@ -53,7 +57,7 @@ class SetupTests(unittest.TestCase):
             config.parent.mkdir()
             config.write_text(
                 'default_permissions = ":workspace"\n'
-                "[memories]\nuse_memories = true\ndisable_on_external_context = true\n"
+                "[memories]\nuse_memories = false\nmax_unused_days = 45\n"
                 '[permissions.other]\nextends = ":read-only"\n'
             )
             command = [str(ROOT / "setup.sh"), "--home", str(home)]
@@ -64,9 +68,22 @@ class SetupTests(unittest.TestCase):
             parsed = tomllib.loads(first)
             self.assertEqual(parsed["default_permissions"], ":danger-full-access")
             self.assertEqual(parsed["permissions"]["other"]["extends"], ":read-only")
-            self.assertTrue(parsed["memories"]["disable_on_external_context"])
-            self.assertFalse(parsed["memories"]["use_memories"])
-            self.assertFalse(parsed["memories"]["generate_memories"])
+            self.assertEqual(profile_memories_in(parsed), PROFILE_MEMORIES)
+            self.assertEqual(parsed["memories"]["max_unused_days"], 45)
+
+    def test_profile_memory_settings_must_be_true_or_false(self):
+        spec = importlib.util.spec_from_file_location(
+            "merge_config", ROOT / "scripts/merge_config.py"
+        )
+        assert spec is not None and spec.loader is not None
+        merge_config = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(merge_config)
+        profile = (
+            'default_permissions = "mark"\n[permissions.mark]\nextends = ":workspace"\n'
+            '[memories]\ngenerate_memories = true\nuse_memories = "yes"\n'
+        )
+        with self.assertRaises(ValueError):
+            merge_config.merged_config("", profile)
 
     def test_runtime_hook_state_does_not_trigger_rewrite(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -114,10 +131,7 @@ class SetupTests(unittest.TestCase):
                 parsed = tomllib.loads(first)
                 self.assertEqual(parsed["default_permissions"], ":danger-full-access")
                 self.assertEqual(parsed["permissions"]["mark"]["extends"], ":workspace")
-                self.assertFalse(parsed["memories"]["use_memories"])
-                self.assertFalse(parsed["memories"]["generate_memories"])
-                if "disable_on_external_context" in original:
-                    self.assertTrue(parsed["memories"]["disable_on_external_context"])
+                self.assertEqual(profile_memories_in(parsed), PROFILE_MEMORIES)
                 if "other" in original:
                     self.assertEqual(
                         parsed["permissions"]["other"]["extends"], ":workspace"

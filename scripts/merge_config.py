@@ -1,4 +1,4 @@
-"""Copy the versioned permission settings into a machine's Codex config."""
+"""Copy the versioned permission and memory settings into a machine's Codex config."""
 
 import json
 import os
@@ -75,8 +75,18 @@ def merged_config(base_text: str, profile_text: str) -> str:
     profile = tomllib.loads(profile_text)
     if profile.get("default_permissions") != "mark":
         raise ValueError("mark.config.toml must select the mark permission profile")
-    if profile.get("memories") != {"generate_memories": False, "use_memories": False}:
-        raise ValueError("mark.config.toml must disable both memory operations")
+    memories = profile.get("memories", {})
+    if not all(
+        isinstance(memories.get(key), bool)
+        for key in ("generate_memories", "use_memories")
+    ):
+        raise ValueError(
+            "mark.config.toml must set generate_memories and use_memories to true or false"
+        )
+    owned_memory_keys = {(key,) for key in memories}
+    memory_lines = "".join(
+        f"{key} = {toml_value(value)}\n" for key, value in memories.items()
+    )
     base = tomllib.loads(base_text)
 
     kept = []
@@ -102,7 +112,7 @@ def merged_config(base_text: str, profile_text: str) -> str:
             if section == ("memories",):
                 has_memories = True
                 kept.append(line)
-                kept.append("generate_memories = false\nuse_memories = false\n")
+                kept.append(memory_lines)
                 continue
             if section[:2] == ("permissions", "mark"):
                 continue
@@ -128,10 +138,7 @@ def merged_config(base_text: str, profile_text: str) -> str:
             continue
         if section == ("permissions",) and key == ("mark",):
             continue
-        if section == ("memories",) and key in (
-            ("generate_memories",),
-            ("use_memories",),
-        ):
+        if section == ("memories",) and key in owned_memory_keys:
             continue
         kept.append(line)
 
@@ -142,7 +149,7 @@ def merged_config(base_text: str, profile_text: str) -> str:
         extra_memories = "".join(
             f"\n{key} = {toml_value(value)}"
             for key, value in base.get("memories", {}).items()
-            if key not in {"generate_memories", "use_memories"}
+            if key not in memories
         )
         other = f"{other}\n\n[memories]{memory_table.rstrip()}{extra_memories}"
     if inline_permissions:
