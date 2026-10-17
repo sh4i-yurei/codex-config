@@ -1,5 +1,5 @@
 {
-  "description": "Codex session orientation and targeted formatting",
+  "description": "Codex session orientation, targeted formatting, and the git workflow guard",
   "hooks": {
     "SessionStart": [
       {
@@ -22,6 +22,17 @@
             "type": "command",
             "command": "python3 ~/.codex/hooks/format_patch.py",
             "timeout": 35
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/git-guard.py",
+            "timeout": 10
           }
         ]
       }
