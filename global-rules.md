@@ -125,6 +125,19 @@ versions. Approach live infrastructure carefully and confirm each destructive st
 Notes are a record, and their existence or age creates no obligation to act. Do not add
 unrequested cleanup, personal-account chores, schedules or reminder systems.
 
+## 10. Designing code and estimating work
+
+Development cost is never a reason for a design. Choose what a careful engineer would choose with
+unlimited time: the right abstraction, a real parser over pattern-matching, the root-cause fix
+over a patch. Never pick an approach because it is quicker to write. Cutting build effort is how
+code gets brute-forced into working instead of thought through, and the cost returns as fixes.
+When a fix needs a second patch, stop and redesign. This is about the code's design; being
+economical with tokens and tool calls while working is still good practice.
+
+Estimate in agent time, never as a human team would. Give minutes for writing code and notes,
+the real waits such as CI runs, installs and builds, and list separately the steps that wait on
+Mark: clicks, merges, decisions and testing by hand.
+
 <!-- context7 -->
 Use the `ctx7` CLI to fetch current documentation whenever the user asks about a library, framework, SDK, API, CLI tool, or cloud service — even well-known ones like React, Next.js, Prisma, Express, Tailwind, Django, or Spring Boot. This includes API syntax, configuration, version migration, library-specific debugging, setup instructions, and CLI tool usage. Use even when you think you know the answer — your training data may not reflect recent changes. Prefer this over web search for library docs.
 
