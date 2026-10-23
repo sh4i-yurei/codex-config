@@ -93,12 +93,15 @@ require the same authorization as other live infrastructure changes.
 
 ## 6. Git
 
-Work on a feature branch, then a pull request, then merge after review. Commit and push only
+Outside a build handoff, work on a feature branch, then a pull request, then merge after review. Commit and push only
 when Mark asks; a specification explicitly requiring committed deliverables authorizes
 those commits. Keep unrelated working-tree changes intact. Messages describe the contents
 and reason for the change. Never add AI attribution, `Co-authored-by` trailers or
 generated-with lines to commits or pull requests. Public artifacts stand on their own and
 contain no private estate details or private vault links.
+
+A build handoff authorizes pushing its named branch only. Always push with the branch named;
+never push main, force-push, open or edit a pull request, or merge under that handoff.
 
 ## 7. Checking work
 
@@ -124,6 +127,19 @@ Do the asked scope and nothing beside it. Apply security-first defaults and pref
 versions. Approach live infrastructure carefully and confirm each destructive step.
 Notes are a record, and their existence or age creates no obligation to act. Do not add
 unrequested cleanup, personal-account chores, schedules or reminder systems.
+
+## Building from a handoff
+
+Read the repository's `AGENTS.md` and `ARCHITECTURE.md` first. Respect what each piece must not do.
+If the handoff is ambiguous or contradicts itself, write the question in the project's Open questions and stop instead of guessing.
+Add no dependency, tool or pattern the handoff doesn't name. Change no shared interface without a test case saying so.
+Check every API, flag, configuration key and import against documentation through `~/.claude/skills/research/scripts/lookup.py` before use.
+Write tests from the handoff's cases first. For new or changed behaviour, show each test failing on an assertion before the code change.
+For existing behaviour, a test may pass initially; prove it checks something by killing mutants of the code it covers (Testing and CI decision 11).
+Never weaken a test to pass. Test behaviour, not implementation.
+Mutation evidence counts only when complete and reflecting the current code and tests: use a fresh run or the mutation tool's own cache invalidation, never timestamps.
+Explain a surviving mutant only when no test of behaviour can kill it; otherwise write the test.
+Explain a mutant that only a test pinning an internal detail could kill instead of writing that test (testing-standard rule 4).
 
 ## 10. Designing code and estimating work
 

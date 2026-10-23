@@ -49,6 +49,9 @@ class SetupTests(unittest.TestCase):
             self.assertEqual(parsed["memories"], PROFILE_MEMORIES)
             for name in ("AGENTS.md", "hooks.json", "hooks", "mark.config.toml"):
                 self.assertTrue((home / ".codex" / name).is_symlink())
+            self.assertEqual(
+                (home / ".codex/AGENTS.md").resolve(), ROOT / "global-rules.md"
+            )
 
     def test_existing_memories_and_other_permission_profiles_survive(self):
         with tempfile.TemporaryDirectory() as directory:
