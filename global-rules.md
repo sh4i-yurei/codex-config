@@ -11,6 +11,10 @@ names under `~/Documents/Second_Brain/10_Projects/`. The project note is the roa
 Claude's research skill, gateway and research scripts are Claude's tools. If implementation
 uncovers a research or design gap, stop, describe the gap, and let Mark take it to Claude.
 
+Open `~/Documents/Second_Brain/10_Projects/Operating model.md` when starting new work,
+deciding where a decision belongs, when a convention is unclear or two notes disagree,
+and when a new kind of work arrives.
+
 Keep the record as the work happens. Vault writes are limited to the project currently
 being worked on: its project note in `10_Projects/` and its open buildlog in
 `20_Buildlogs/`. Every other part of the vault is read-only unless Mark specifically

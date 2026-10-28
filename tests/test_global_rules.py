@@ -10,6 +10,42 @@ RULES = ROOT / "global-rules.md"
 
 
 class GlobalRulesTests(unittest.TestCase):
+    def test_roles_section_points_to_operating_model(self):
+        text = RULES.read_text()
+        match = re.search(
+            r"^## 1\. Roles and workflow\n(?P<body>.*?)(?=^## |\Z)",
+            text,
+            re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        body = match.group("body")
+        with self.subTest(case="path"):
+            self.assertIn(
+                "~/Documents/Second_Brain/10_Projects/Operating model.md", body
+            )
+        for phrase in (
+            "starting new work",
+            "where a decision belongs",
+            "two notes disagree",
+            "new kind of work",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, body)
+
+    def test_operating_model_is_named_once(self):
+        text = RULES.read_text()
+        self.assertEqual(text.count("Operating model.md"), 1)
+
+    def test_operating_model_decisions_are_not_copied(self):
+        text = RULES.read_text()
+        for title in (
+            "Workflows are global",
+            "An agent owns what it creates",
+            "Build effort is never a reason for a design",
+        ):
+            with self.subTest(title=title):
+                self.assertNotIn(title, text)
+
     def test_building_from_a_handoff_covers_the_required_contract(self):
         text = RULES.read_text()
         match = re.search(
