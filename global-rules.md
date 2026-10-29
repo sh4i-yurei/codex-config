@@ -109,12 +109,24 @@ never push main, force-push, open or edit a pull request, or merge under that ha
 
 ## 7. Checking work
 
-Verify specifics on the machine before stating them as facts. Run the repository's own
-checks and report their actual output. A passing lint check does not establish runtime
-behavior. Test and review each item against its stated completion condition before moving
-on. Never declare work complete without evidence. Keep planned and deployed state distinct.
+Correct comes before fast. Before acting, handing work off or telling Mark something is
+true, slow down, check yourself and verify. Establish the facts a piece of work rests on
+from their source before writing it: the file itself, the whole repository searched
+without filters, or the machine. Never use a summary or memory in place of those sources.
+Say plainly when something is unchecked. A tool passing answers only the question that
+tool asks. When work goes wrong, slow down further; never hurry to unblock Mark. Slow is
+smooth, and smooth is fast.
+
+Run the repository's own checks and report their actual output. A passing lint check does
+not establish runtime behavior. Test and review each item against its stated completion
+condition before moving on. Never declare work complete without evidence. Keep planned and
+deployed state distinct.
 For browser changes, use the project's browser tests; production contact-form tests send
 real mail and require deliberate authorization.
+
+Operating model decision 17 is this section's authority. Where this section and the
+operating model disagree, the operating model wins. Vault system decision 20 is why this
+one decision is copied here.
 
 ## 8. Writing
 

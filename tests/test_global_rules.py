@@ -10,6 +10,46 @@ RULES = ROOT / "global-rules.md"
 
 
 class GlobalRulesTests(unittest.TestCase):
+    def checking_work_section(self):
+        text = RULES.read_text()
+        match = re.search(
+            r"^## 7\. Checking work\n(?P<body>.*?)(?=^## |\Z)",
+            text,
+            re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        return match.group("body").strip()
+
+    def test_checking_work_stays_concise(self):
+        self.assertLessEqual(len(self.checking_work_section().splitlines()), 20)
+
+    def test_checking_work_carries_decision_17(self):
+        prose = " ".join(self.checking_work_section().split()).lower()
+        for phrase in (
+            "correct comes before fast",
+            "slow is smooth, and smooth is fast",
+            "searched without filters",
+            "summary",
+            "unchecked",
+            "only the question",
+            "slow down further",
+            "decision 17",
+            "the operating model wins",
+            "vault system decision 20",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_checking_work_keeps_existing_guards(self):
+        prose = " ".join(self.checking_work_section().split())
+        for phrase in (
+            "Never declare work complete without evidence.",
+            "Keep planned and deployed state distinct.",
+            "production contact-form tests send real mail and require deliberate authorization.",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
     def test_roles_section_points_to_operating_model(self):
         text = RULES.read_text()
         match = re.search(
