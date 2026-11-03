@@ -179,8 +179,10 @@ each one are under "Why the rules are there" in
 
 - Never wait in a loop. Give slow commands a time limit long enough to finish in one call, and
   keep only the summary or the last lines.
-- Make one patch per change across the files it touches. Do not run the formatter yourself: the
-  patch hook formats every file a patch touches.
+- Make one patch per change across the files it touches. Do not run a formatter yourself on
+  Python, Rust or Go files: the patch hook formats each one a patch touches, and prints
+  "Unable to format" when it can't. Then, and for every other kind of file, follow the
+  repository's own formatting instructions.
 - Keep output short: quiet flags, tail, grep for failures. Find code with `rg -n` and read only
   the function you need. Never cat a whole vault note.
 - Get the time with `date` inside a command you are already running.
