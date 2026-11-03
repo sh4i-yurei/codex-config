@@ -170,6 +170,23 @@ Estimate in agent time, never as a human team would. Give minutes for writing co
 the real waits such as CI runs, installs and builds, and list separately the steps that wait on
 Mark: clicks, merges, decisions and testing by hand.
 
+## 11. Working efficiently
+
+Every model call resends the whole conversation, so these rules cut the number of calls and keep
+text out of it. They govern how you work, never the design of the code. The measurements behind
+each one are under "Why the rules are there" in
+`60_Operational_Manual/68_Dev_Workflow/codex-build-loop.md`.
+
+- Never wait in a loop. Give slow commands a time limit long enough to finish in one call, and
+  keep only the summary or the last lines.
+- Make one patch per change across the files it touches. Do not run the formatter yourself: the
+  patch hook formats every file a patch touches.
+- Keep output short: quiet flags, tail, grep for failures. Find code with `rg -n` and read only
+  the function you need. Never cat a whole vault note.
+- Get the time with `date` inside a command you are already running.
+- The lookup tool saves its own records under `70_Research/_lookups`. They are the research
+  record, so never delete or edit them.
+
 <!-- context7 -->
 Use the `ctx7` CLI to fetch current documentation whenever the user asks about a library, framework, SDK, API, CLI tool, or cloud service — even well-known ones like React, Next.js, Prisma, Express, Tailwind, Django, or Spring Boot. This includes API syntax, configuration, version migration, library-specific debugging, setup instructions, and CLI tool usage. Use even when you think you know the answer — your training data may not reflect recent changes. Prefer this over web search for library docs.
 

@@ -13,12 +13,11 @@ before creating one. If the item depends on an undecided design choice or new
 research, name the gap and stop that dependent work for Mark and Claude.
 
 Work on a feature branch. Write buildlog entries during the work, with actual
-commands, output and errors. Test and review each step against its completion
-condition. Tick the project note's Next item only after the *done when* check
+commands, output and errors. Test and review the item once against its *done when*
+condition, when it is built, rather than after each step. Tick the project note's Next item only after the *done when* check
 passes; update Where it stands to the current state. Keep vault edits within
 the active project's note and buildlog.
 
 At handoff, give the branch and its commits when commits were authorized, the
-repository checks and their real output, a `codex review --base main` summary
-when useful, and the current session transcript path under `~/.codex/sessions/`.
+repository checks and their real output, and the current session transcript path under `~/.codex/sessions/`.
 The project note and buildlog should already reflect the verified work.
