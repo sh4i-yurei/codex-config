@@ -7,9 +7,77 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "global-rules.md"
+BUILD_SKILL = ROOT / "skills" / "build-from-spec" / "SKILL.md"
 
 
 class GlobalRulesTests(unittest.TestCase):
+    def efficiency_section(self):
+        text = RULES.read_text()
+        heading = "## 11. Working efficiently"
+        marker = "<!-- context7 -->"
+        self.assertEqual(text.count(heading), 1)
+        self.assertLess(
+            text.index("## 10. Designing code and estimating work"), text.index(heading)
+        )
+        self.assertLess(text.index(heading), text.index(marker))
+        return text[text.index(heading) : text.index(marker)].strip()
+
+    def test_efficiency_section_follows_design_and_precedes_context7(self):
+        self.efficiency_section()
+
+    def test_efficiency_section_carries_every_rule(self):
+        prose = " ".join(self.efficiency_section().split())
+        for phrase in (
+            "resends the whole conversation",
+            "never the design of the code",
+            "60_Operational_Manual/68_Dev_Workflow/codex-build-loop.md",
+            "Never wait in a loop.",
+            "time limit long enough to finish in one call",
+            "one patch per change",
+            "Do not run a formatter yourself on Python, Rust or Go files",
+            "Unable to format",
+            "the repository's own formatting instructions",
+            "quiet flags, tail, grep for failures",
+            "rg -n",
+            "Never cat a whole vault note.",
+            "date",
+            "70_Research/_lookups",
+            "never delete or edit them",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_efficiency_section_stays_concise(self):
+        self.assertLessEqual(len(self.efficiency_section().splitlines()), 20)
+
+    def test_build_skill_reviews_item_once(self):
+        prose = " ".join(BUILD_SKILL.read_text().split())
+        self.assertIn(
+            "Test and review the item once against its *done when* condition, when it is built, rather than after each step.",
+            prose,
+        )
+        self.assertNotIn("each step against its completion condition", prose)
+
+    def test_build_skill_handoff_excludes_self_review(self):
+        text = BUILD_SKILL.read_text()
+        prose = " ".join(text.split())
+        self.assertNotIn("codex review", text)
+        self.assertIn(
+            "At handoff, give the branch and its commits when commits were authorized, the repository checks and their real output, and the current session transcript path under `~/.codex/sessions/`.",
+            prose,
+        )
+
+    def test_build_skill_does_not_duplicate_efficiency_rules(self):
+        text = BUILD_SKILL.read_text()
+        for phrase in (
+            "Never wait in a loop",
+            "one patch per change",
+            "rg -n",
+            "70_Research/_lookups",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertNotIn(phrase, text)
+
     def checking_work_section(self):
         text = RULES.read_text()
         match = re.search(
