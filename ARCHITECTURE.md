@@ -23,8 +23,10 @@ and is never replaced by a link. Codex's command guard is not here: `hooks.json`
 | `mark.config.toml` | The `mark` permission profile and memory settings | Codex config profile | — | Replace the machine's base config |
 | `scripts/setup.py`, `setup.sh` | Link each piece into place, keep dated backups, merge memory settings | Run by hand | Lists missing pieces as pending | Overwrite a file without keeping a backup |
 | `scripts/merge_config.py` | Merge settings into the base config | Called by setup | Refuses to write invalid TOML | Remove settings it didn't add |
+| `.github/workflows/ci.yml` | Call the pinned shared Python check | Every push and pull request | CI reports a failed check | Hold a copy of the shared checks' logic |
+| `pyproject.toml` | Hold the pytest and mutmut settings the shared check reads | Python tool configuration | A check rejects invalid settings | Duplicate the shared checks' logic |
 | `skills/` | Codex skills, linked as `~/.agents/skills` | Loaded when a skill applies | Per skill | Duplicate a rule from `global-rules.md` |
-| `tests/` | Tests for the hooks and setup | `python3 -m unittest discover -s tests -v` | — | Touch the real home folder; use `--home` with a temporary folder |
+| `tests/` | Tests for the hooks and setup | `python3 -m pytest -q -p no:cacheprovider && git diff --check` | — | Touch the real home folder; use `--home` with a temporary folder |
 
 ## Rules every piece follows
 

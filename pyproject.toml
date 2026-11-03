@@ -1,0 +1,8 @@
+[tool.mutmut]
+source_paths = ["hooks", "scripts"]
+also_copy = ["global-rules.md", "mark.config.toml", "hooks.json", "setup.sh", "skills", ".github"]
+cache_invalidation_files = ["tests/*.py", "tests/**/*.py"]
+on_dependency_change = "rerun"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

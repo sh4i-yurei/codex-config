@@ -12,11 +12,32 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve().parents[1] / "hooks/format_patch.py"
 
 
+def formatter_env(home, *, fallback=False, rust=False):
+    env = {
+        "HOME": str(home),
+        "PATH": "/usr/bin:/bin" if fallback else os.environ["PATH"],
+    }
+    if rust:
+        for name in ("RUSTUP_HOME", "CARGO_HOME"):
+            env[name] = os.environ.get(
+                name,
+                str(Path.home() / (".rustup" if name == "RUSTUP_HOME" else ".cargo")),
+            )
+    return env
+
+
+def install_ruff_fallback(home):
+    fallback = home / ".local/bin/ruff"
+    fallback.parent.mkdir(parents=True)
+    fallback.symlink_to(shutil.which("ruff"))
+
+
 class FormatPatchTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("ruff"), "ruff is required for this check")
     def test_only_existing_patch_path_is_formatted(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            install_ruff_fallback(root)
             edited = root / "edited.py"
             untouched = root / "untouched.py"
             bad_style = 'value={"a":1}\n'
@@ -37,7 +58,7 @@ class FormatPatchTests(unittest.TestCase):
                 text=True,
                 capture_output=True,
                 check=True,
-                env={**os.environ, "PATH": "/usr/bin:/bin"},
+                env=formatter_env(root, fallback=True),
             )
             self.assertEqual(result.stdout, "")
             self.assertNotEqual(edited.read_text(), bad_style)
@@ -46,16 +67,19 @@ class FormatPatchTests(unittest.TestCase):
                 ["ruff", "format", "--check", str(edited)],
                 capture_output=True,
                 check=True,
+                env=formatter_env(root),
             )
 
     def test_bad_event_exits_cleanly(self):
-        result = subprocess.run(
-            [sys.executable, str(SCRIPT)],
-            input="not json",
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT)],
+                input="not json",
+                text=True,
+                capture_output=True,
+                check=False,
+                env=formatter_env(Path(directory)),
+            )
         self.assertEqual(result.returncode, 0)
         self.assertIn("Unable to format patch: JSONDecodeError", result.stdout)
 
@@ -63,6 +87,7 @@ class FormatPatchTests(unittest.TestCase):
     def test_named_sibling_file_is_formatted_without_touching_neighbor(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            install_ruff_fallback(root)
             workspace = root / "workspace"
             workspace.mkdir()
             edited = root / "edited.py"
@@ -84,7 +109,7 @@ class FormatPatchTests(unittest.TestCase):
                 text=True,
                 capture_output=True,
                 check=True,
-                env={**os.environ, "PATH": "/usr/bin:/bin"},
+                env=formatter_env(root, fallback=True),
             )
             self.assertEqual(result.stdout, "")
             self.assertEqual(edited.read_text(), 'value = {"a": 1}\n')
@@ -94,6 +119,7 @@ class FormatPatchTests(unittest.TestCase):
     def test_failed_patch_does_not_format_named_file(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            install_ruff_fallback(root)
             edited = root / "edited.py"
             bad_style = 'value={"a":1}\n'
             edited.write_text(bad_style)
@@ -111,6 +137,7 @@ class FormatPatchTests(unittest.TestCase):
                 text=True,
                 capture_output=True,
                 check=True,
+                env=formatter_env(root, fallback=True),
             )
             self.assertEqual(result.stdout, "")
             self.assertEqual(edited.read_text(), bad_style)
@@ -143,6 +170,7 @@ class FormatPatchTests(unittest.TestCase):
                 text=True,
                 capture_output=True,
                 check=True,
+                env=formatter_env(root, rust=True),
             )
             self.assertEqual(result.stdout, "")
             self.assertIn("async fn main() {", edited.read_text())
@@ -159,6 +187,7 @@ class FormatPatchTests(unittest.TestCase):
                 ],
                 capture_output=True,
                 check=True,
+                env=formatter_env(root, rust=True),
             )
 
 

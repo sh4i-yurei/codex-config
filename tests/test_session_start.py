@@ -1,6 +1,7 @@
 """Check the orientation hook's event and output contract."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -10,15 +11,21 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve().parents[1] / "hooks/session_start.py"
 
 
+def program_env(home):
+    return {"HOME": str(home), "PATH": os.environ["PATH"]}
+
+
 class SessionStartTests(unittest.TestCase):
     def invoke(self, payload):
-        result = subprocess.run(
-            [sys.executable, str(SCRIPT)],
-            input=payload,
-            text=True,
-            capture_output=True,
-            check=True,
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT)],
+                input=payload,
+                text=True,
+                capture_output=True,
+                check=True,
+                env=program_env(Path(directory)),
+            )
         hook_output = json.loads(result.stdout)["hookSpecificOutput"]
         self.assertEqual(hook_output["hookEventName"], "SessionStart")
         return hook_output["additionalContext"]
@@ -27,7 +34,9 @@ class SessionStartTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "sample-repo"
             root.mkdir()
-            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(
+                ["git", "init", "-q", str(root)], check=True, env=program_env(root)
+            )
             (root / "AGENTS.md").write_text(
                 "Project note: [[Sample project]]\nBuildlog: [[sample-log]]\n"
             )
@@ -49,7 +58,9 @@ class SessionStartTests(unittest.TestCase):
             root = Path(directory) / "sample-repo"
             nested = root / "nested"
             nested.mkdir(parents=True)
-            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(
+                ["git", "init", "-q", str(root)], check=True, env=program_env(root)
+            )
             (root / "AGENTS.md").write_text(
                 "Project note: [[Parent]]\nBuildlog: [[parent-log]]\n"
             )
