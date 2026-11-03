@@ -1,15 +1,20 @@
 """Exercise the installer against disposable home directories."""
 
-import importlib.util
+import os
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
 import tomllib
+from scripts import merge_config
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE_MEMORIES = tomllib.loads((ROOT / "mark.config.toml").read_text())["memories"]
+
+
+def setup_env(home):
+    return {"HOME": str(home), "PATH": os.environ["PATH"]}
 
 
 def profile_memories_in(parsed):
@@ -28,9 +33,13 @@ class SetupTests(unittest.TestCase):
             config.write_text(original)
 
             command = [str(ROOT / "setup.sh"), "--home", str(home)]
-            first = subprocess.run(command, text=True, capture_output=True, check=True)
+            first = subprocess.run(
+                command, text=True, capture_output=True, check=True, env=setup_env(home)
+            )
             after_first = config.read_text()
-            second = subprocess.run(command, text=True, capture_output=True, check=True)
+            second = subprocess.run(
+                command, text=True, capture_output=True, check=True, env=setup_env(home)
+            )
 
             self.assertIn("Configured:", first.stdout)
             self.assertIn(
@@ -64,9 +73,13 @@ class SetupTests(unittest.TestCase):
                 '[permissions.other]\nextends = ":read-only"\n'
             )
             command = [str(ROOT / "setup.sh"), "--home", str(home)]
-            subprocess.run(command, capture_output=True, text=True, check=True)
+            subprocess.run(
+                command, capture_output=True, text=True, check=True, env=setup_env(home)
+            )
             first = config.read_text()
-            subprocess.run(command, capture_output=True, text=True, check=True)
+            subprocess.run(
+                command, capture_output=True, text=True, check=True, env=setup_env(home)
+            )
             self.assertEqual(first, config.read_text())
             parsed = tomllib.loads(first)
             self.assertEqual(parsed["default_permissions"], ":danger-full-access")
@@ -75,12 +88,6 @@ class SetupTests(unittest.TestCase):
             self.assertEqual(parsed["memories"]["max_unused_days"], 45)
 
     def test_profile_memory_settings_must_be_true_or_false(self):
-        spec = importlib.util.spec_from_file_location(
-            "merge_config", ROOT / "scripts/merge_config.py"
-        )
-        assert spec is not None and spec.loader is not None
-        merge_config = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(merge_config)
         profile = (
             'default_permissions = "mark"\n[permissions.mark]\nextends = ":workspace"\n'
             '[memories]\ngenerate_memories = true\nuse_memories = "yes"\n'
@@ -92,14 +99,18 @@ class SetupTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             command = [str(ROOT / "setup.sh"), "--home", str(home)]
-            subprocess.run(command, capture_output=True, text=True, check=True)
+            subprocess.run(
+                command, capture_output=True, text=True, check=True, env=setup_env(home)
+            )
             config = home / ".codex/config.toml"
             config.write_text(
                 config.read_text()
                 + '\n[hooks.state.example]\ntrusted_hash = "sample"\n'
             )
             before = config.read_text()
-            second = subprocess.run(command, capture_output=True, text=True, check=True)
+            second = subprocess.run(
+                command, capture_output=True, text=True, check=True, env=setup_env(home)
+            )
             self.assertEqual(config.read_text(), before)
             self.assertIn(
                 "already has the full-access default and mark profile", second.stdout
@@ -127,9 +138,21 @@ class SetupTests(unittest.TestCase):
                 config.parent.mkdir()
                 config.write_text(original)
                 command = [str(ROOT / "setup.sh"), "--home", str(home)]
-                subprocess.run(command, capture_output=True, text=True, check=True)
+                subprocess.run(
+                    command,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    env=setup_env(home),
+                )
                 first = config.read_text()
-                subprocess.run(command, capture_output=True, text=True, check=True)
+                subprocess.run(
+                    command,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    env=setup_env(home),
+                )
                 self.assertEqual(first, config.read_text())
                 parsed = tomllib.loads(first)
                 self.assertEqual(parsed["default_permissions"], ":danger-full-access")
