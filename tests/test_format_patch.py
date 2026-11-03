@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SCRIPT = Path(__file__).resolve().parents[1] / "hooks/format_patch.py"
 
@@ -29,10 +30,44 @@ def formatter_env(home, *, fallback=False, rust=False):
 def install_ruff_fallback(home):
     fallback = home / ".local/bin/ruff"
     fallback.parent.mkdir(parents=True)
-    fallback.symlink_to(shutil.which("ruff"))
+    fallback.symlink_to(Path(shutil.which("ruff")).resolve())
 
 
 class FormatPatchTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("ruff"), "ruff is required for this check")
+    def test_relative_path_ruff_fallback_formats_named_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            relative_bin = os.path.relpath(
+                Path(shutil.which("ruff")).parent, Path.cwd()
+            )
+            with mock.patch.dict(os.environ, {"PATH": f"{relative_bin}:/usr/bin:/bin"}):
+                install_ruff_fallback(root)
+            edited = root / "edited.py"
+            untouched = root / "untouched.py"
+            bad_style = 'value={"a":1}\n'
+            edited.write_text(bad_style)
+            untouched.write_text(bad_style)
+            event = {
+                "tool_name": "apply_patch",
+                "tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM edited.py\n",
+                "cwd": str(root),
+                "tool_input": {
+                    "command": f"*** Begin Patch\n*** Update File: {edited}\n*** End Patch"
+                },
+            }
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT)],
+                input=json.dumps(event),
+                text=True,
+                capture_output=True,
+                check=True,
+                env=formatter_env(root, fallback=True),
+            )
+            self.assertEqual(result.stdout, "")
+            self.assertEqual(edited.read_text(), 'value = {"a": 1}\n')
+            self.assertEqual(untouched.read_text(), bad_style)
+
     @unittest.skipUnless(shutil.which("ruff"), "ruff is required for this check")
     def test_only_existing_patch_path_is_formatted(self):
         with tempfile.TemporaryDirectory() as directory:
