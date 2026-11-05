@@ -14,11 +14,11 @@ def test_python_ci_caller():
     workflow = yaml.load(path.read_text(), Loader=yaml.BaseLoader)
     assert workflow == {
         "name": "Python checks",
-        "on": {"push": {}, "pull_request": {}},
+        "on": {"push": {}},
         "permissions": {"contents": "read"},
         "jobs": {
             "python": {
-                "uses": "sh4i-yurei/ci-workflows/.github/workflows/python.yml@8d1ea0f42d357f6639eda1ac9359b9b1420d8789",
+                "uses": "sh4i-yurei/ci-workflows/.github/workflows/python.yml@6fa70095587800bf834d27d1cf2313a7b8dbb168",
                 "with": {
                     "coverage_floor": "1",
                     "install_command": "python -m pip install ruff==0.16.0 pytest==9.1.1 pytest-cov==7.1.0",
