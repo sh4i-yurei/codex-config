@@ -23,3 +23,30 @@ At handoff, give the branch and its commits when commits were authorized, the
 repository checks and their real output, and the current session transcript
 path under `~/.codex/sessions/`.
 The project note and buildlog should already reflect the verified work.
+
+## Build handoffs
+
+A handoff whose Response has no "Round" line is a build session. A handoff whose
+Response ends with "Round <N>: changes required" is a fix session: address only
+that round's blocking findings. Follow the handoff's named branch and files.
+
+Write tests first. Each new behaviour test must fail on an assertion about
+behaviour before the code exists, never on an import or collection error. A test
+of existing behaviour passes from the start and proves itself by killing mutants.
+Keep the actual failing assertions in the buildlog.
+
+Run mutation on the functions the item changed, to completion, with at most 10
+workers; the default of one per CPU core froze the laptop on 2026-10-28. Follow
+the global mutation-evidence and survivor rules.
+
+Commit only after the CI rehearsal the handoff names passes on that commit.
+Never push, wait for CI or run a
+review. Claude reviews the local commit, pushes and opens the pull request. If a
+failure has the same cause as an earlier failure in the item, do not patch it a
+second time: record both failures and the cause in the project note's Open
+questions, then stop the item.
+
+In the vault, edit only the project note's Open questions, its buildlog and the
+handoff's Response; never delete anything in the vault. Put the commit SHA, full
+check output, rehearsal output, mutation counts and each survivor with its reason
+in that Response. The handoff stays open and the Next item unticked for Claude.

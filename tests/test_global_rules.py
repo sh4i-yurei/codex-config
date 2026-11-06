@@ -78,6 +78,107 @@ class GlobalRulesTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertNotIn(phrase, text)
 
+    def build_handoffs_section(self):
+        text = BUILD_SKILL.read_text()
+        match = re.search(
+            r"^## Build handoffs\n(?P<body>.*?)(?=^## |\Z)",
+            text,
+            re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        return " ".join(match.group("body").split())
+
+    def test_build_handoff_session_selection(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            'Response has no "Round" line is a build session',
+            'Response ends with "Round <N>: changes required" is a fix session',
+            "only that round's blocking findings",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_tests_first(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "Write tests first",
+            "fail on an assertion about behaviour before the code exists",
+            "never on an import or collection error",
+            "existing behaviour passes from the start",
+            "proves itself by killing mutants",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_commit_and_review_gate(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "CI rehearsal the handoff names passes on that commit",
+            "Never push, wait for CI or run a review",
+            "Claude reviews the local commit, pushes and opens the pull request",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_repeated_cause_stops(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "same cause as an earlier failure in the item",
+            "do not patch it a second time",
+            "project note's Open questions",
+            "stop the item",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_mutation_limit(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "functions the item changed",
+            "to completion",
+            "at most 10 workers",
+            "one per CPU core froze the laptop on 2026-10-28",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_response_and_claude_boundary(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "commit SHA",
+            "full check output",
+            "rehearsal output",
+            "mutation counts",
+            "each survivor with its reason",
+            "handoff stays open",
+            "Next item unticked for Claude",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_vault_boundary(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "project note's Open questions",
+            "its buildlog",
+            "handoff's Response",
+            "never delete anything in the vault",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_global_sentence_not_copied(self):
+        rules = re.split(r"(?<=[.!?])\s+", " ".join(RULES.read_text().split()))
+        skill = " ".join(BUILD_SKILL.read_text().split())
+        for sentence in rules:
+            words = sentence.split()
+            for start in range(len(words) - 7):
+                with self.subTest(words=words[start : start + 8]):
+                    self.assertNotIn(" ".join(words[start : start + 8]), skill)
+
+    def test_build_handoff_skill_stays_short(self):
+        self.assertLessEqual(len(BUILD_SKILL.read_text().splitlines()), 80)
+
     def checking_work_section(self):
         text = RULES.read_text()
         match = re.search(
@@ -205,10 +306,10 @@ class GlobalRulesTests(unittest.TestCase):
         )
         self.assertEqual(
             " ".join(handoff_paragraph.split()),
-            "A build handoff authorizes pushing its named branch only. "
-            "Always push with the branch named; never push main, force-push, "
-            "open or edit a pull request, or merge under that handoff.",
+            "A build handoff authorizes committing to its named branch only; "
+            "never push, force-push, open or edit a pull request, or merge under that handoff.",
         )
+        self.assertNotIn("authorizes pushing its named branch", text)
 
 
 if __name__ == "__main__":
