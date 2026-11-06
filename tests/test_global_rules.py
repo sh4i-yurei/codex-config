@@ -101,14 +101,76 @@ class GlobalRulesTests(unittest.TestCase):
     def test_build_handoff_tests_first(self):
         prose = self.build_handoffs_section()
         for phrase in (
-            "Write tests first",
-            "fail on an assertion about behaviour before the code exists",
-            "never on an import or collection error",
-            "existing behaviour passes from the start",
-            "proves itself by killing mutants",
+            "Follow the tests-first and existing-behaviour rules in global-rules.md",
+            "Keep the actual failing assertions in the buildlog",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, prose)
+        self.assertNotIn("proves itself by killing mutants", prose)
+
+    def test_build_handoff_project_note_override(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "replaces the first section's project-note steps",
+            "Do not tick the Next item or rewrite Where it stands",
+            "Claude does both after review",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_existing_code_tests(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "Tests of existing code describe what it does today, with exact values",
+            "behaviour that looks wrong goes in the project note's Open questions with evidence",
+            "never change that behaviour",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_network_and_check_order(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "Make live network requests only when the done-when requires one",
+            "While building, run only the tests that cover the change",
+            "run the full check once before the done-when, then the done-when itself",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_fix_session_steps(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "read that round's review note",
+            "fix every blocking finding",
+            "after each fix run its covering tests and record Saw/Cause/Fix",
+            "run the full check once, then the rehearsal gate",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_driver_and_interface_steps(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "create the interface first when tests need it",
+            "first failure is an assertion",
+            "In keepbreathing-infra, run each affected driver job with `python3 -m ci.run_driver <job>` before committing",
+            "record its last line",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_vault_status_and_end(self):
+        prose = self.build_handoffs_section()
+        for phrase in (
+            "Never change the project note's status or move it",
+            "End the session after writing the Response",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prose)
+
+    def test_build_handoff_sentence_wrap(self):
+        self.assertNotIn("run a\nreview", BUILD_SKILL.read_text())
 
     def test_build_handoff_commit_and_review_gate(self):
         prose = self.build_handoffs_section()
