@@ -104,8 +104,8 @@ and reason for the change. Never add AI attribution, `Co-authored-by` trailers o
 generated-with lines to commits or pull requests. Public artifacts stand on their own and
 contain no private estate details or private vault links.
 
-A build handoff authorizes pushing its named branch only. Always push with the branch named;
-never push main, force-push, open or edit a pull request, or merge under that handoff.
+A build handoff authorizes committing to its named branch only; never push, force-push,
+open or edit a pull request, or merge under that handoff.
 
 ## 7. Checking work
 
