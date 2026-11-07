@@ -156,6 +156,9 @@ class GlobalRulesTests(unittest.TestCase):
             "first failure is an assertion",
             "In keepbreathing-infra, run each affected driver job with `python3 -m ci.run_driver <job>` before committing",
             "record its last line",
+            "If `ci.run_driver` refuses a job because the job runs in CI only",
+            "record that refusal line",
+            "that CI is the job's first run",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, prose)
