@@ -52,6 +52,9 @@ the global mutation-evidence and survivor rules. For mutmut, use
 Commit only after the CI rehearsal the handoff names passes on that commit.
 In keepbreathing-infra, run each affected driver job with
 `python3 -m ci.run_driver <job>` before committing, and record its last line.
+If `ci.run_driver` refuses a job because the job runs in CI only, record that
+refusal line and that CI is the job's first run, and run the other affected
+jobs.
 Never push, wait for CI or run a review. Claude reviews the local commit, pushes
 and opens the pull request. If a
 failure has the same cause as an earlier failure in the item, do not patch it a
