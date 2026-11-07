@@ -353,6 +353,24 @@ class GlobalRulesTests(unittest.TestCase):
             with self.subTest(expected=expected):
                 self.assertIn(expected, body)
 
+    def test_build_handoff_stops_on_repository_or_run_contradictions(self):
+        text = RULES.read_text()
+        match = re.search(
+            r"^## Building from a handoff\n(?P<body>.*?)(?=^## |\Z)",
+            text,
+            re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        body = match.group("body").strip()
+        self.assertIn(
+            "the repository or a run contradicts it or one of its FACTS", body
+        )
+        self.assertIn("instead of guessing or working around it", body)
+        self.assertEqual(sum("contradict" in line for line in body.splitlines()), 1)
+        self.assertFalse(
+            any("contradict" in line for line in BUILD_SKILL.read_text().splitlines())
+        )
+
     def test_git_section_limits_build_handoff_pushes(self):
         text = RULES.read_text()
         match = re.search(

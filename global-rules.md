@@ -147,7 +147,7 @@ unrequested cleanup, personal-account chores, schedules or reminder systems.
 ## Building from a handoff
 
 Read the repository's `AGENTS.md` and `ARCHITECTURE.md` first. Respect what each piece must not do.
-If the handoff is ambiguous or contradicts itself, write the question in the project's Open questions and stop instead of guessing.
+If the handoff is ambiguous or contradicts itself, or the repository or a run contradicts it or one of its FACTS, write the contradiction and its evidence in the project's Open questions and stop instead of guessing or working around it.
 Add no dependency, tool or pattern the handoff doesn't name. Change no shared interface without a test case saying so.
 Check every API, flag, configuration key and import against documentation through `~/.claude/skills/research/scripts/lookup.py` before use.
 Write tests from the handoff's cases first. For new or changed behaviour, show each test failing on an assertion before the code change.
