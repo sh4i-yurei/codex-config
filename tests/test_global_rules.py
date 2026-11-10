@@ -196,16 +196,17 @@ class GlobalRulesTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, prose)
 
-    def test_build_handoff_mutation_limit(self):
+    def test_build_handoff_has_no_mutation_step(self):
         prose = self.build_handoffs_section()
         for phrase in (
-            "functions the item changed",
-            "to completion",
+            "Run mutation on",
+            "mutmut run",
+            "--max-children",
             "at most 10 workers",
-            "one per CPU core froze the laptop on 2026-10-28",
+            "mutation-evidence and survivor rules",
         ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, prose)
+            with self.subTest(absent=phrase):
+                self.assertNotIn(phrase, prose)
 
     def test_build_handoff_response_and_claude_boundary(self):
         prose = self.build_handoffs_section()
@@ -213,13 +214,14 @@ class GlobalRulesTests(unittest.TestCase):
             "commit SHA",
             "full check output",
             "rehearsal output",
-            "mutation counts",
-            "each survivor with its reason",
             "handoff stays open",
             "Next item unticked for Claude",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, prose)
+        for phrase in ("mutation counts", "each survivor with its reason"):
+            with self.subTest(absent=phrase):
+                self.assertNotIn(phrase, prose)
 
     def test_build_handoff_vault_boundary(self):
         prose = self.build_handoffs_section()
@@ -344,17 +346,24 @@ class GlobalRulesTests(unittest.TestCase):
             "existing behaviour",
             "killing mutants",
             "decision 11",
+            "Claude's mutation run after your commit",
+            "never run mutation yourself",
+            "review note lists surviving mutants",
             "Never weaken a test",
             "behaviour, not implementation",
-            "complete",
-            "current code and tests",
-            "cache invalidation",
-            "timestamps",
             "no test of behaviour can kill it",
             "only a test pinning an internal detail could kill",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, body)
+        for absent in (
+            "killing mutants of the code it covers",
+            "Mutation evidence counts only",
+            "cache invalidation",
+            "never timestamps",
+        ):
+            with self.subTest(absent=absent):
+                self.assertNotIn(absent, body)
 
     def test_build_handoff_stops_on_repository_or_run_contradictions(self):
         text = RULES.read_text()

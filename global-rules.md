@@ -151,10 +151,9 @@ If the handoff is ambiguous or contradicts itself, or the repository or a run co
 Add no dependency, tool or pattern the handoff doesn't name. Change no shared interface without a test case saying so.
 Check every API, flag, configuration key and import against documentation through `~/.claude/skills/research/scripts/lookup.py` before use.
 Write tests from the handoff's cases first. For new or changed behaviour, show each test failing on an assertion before the code change.
-For existing behaviour, a test may pass initially; prove it checks something by killing mutants of the code it covers (Testing and CI decision 11).
+For existing behaviour, a test may pass initially; it proves it checks something by killing mutants in Claude's mutation run after your commit (Testing and CI decision 11), so never run mutation yourself.
 Never weaken a test to pass. Test behaviour, not implementation.
-Mutation evidence counts only when complete and reflecting the current code and tests: use a fresh run or the mutation tool's own cache invalidation, never timestamps.
-Explain a surviving mutant only when no test of behaviour can kill it; otherwise write the test.
+When a fix round's review note lists surviving mutants, kill each with a test of behaviour; explain one instead only when no test of behaviour can kill it.
 Explain a mutant that only a test pinning an internal detail could kill instead of writing that test (testing-standard rule 4).
 
 ## 10. Designing code and estimating work
