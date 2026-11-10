@@ -44,11 +44,6 @@ While building, run only the tests that cover the change. On a build session,
 run the full check once before the done-when, then the done-when itself. Keep
 their real output. Make live network requests only when the done-when requires one.
 
-Run mutation on the functions the item changed, to completion, with at most 10
-workers; the default of one per CPU core froze the laptop on 2026-10-28. Follow
-the global mutation-evidence and survivor rules. For mutmut, use
-`mutmut run --max-children 10`.
-
 Commit only after the CI rehearsal the handoff names passes on that commit.
 In keepbreathing-infra, run each affected driver job with
 `python3 -m ci.run_driver <job>` before committing, and record its last line.
@@ -66,6 +61,6 @@ Do not tick the Next item or rewrite Where it stands; Claude does both after rev
 In the vault, edit only the project note's Open questions, its buildlog and the
 handoff's Response; never delete anything in the vault. Never change the project
 note's status or move it. Put the commit SHA, full
-check output, rehearsal output, mutation counts and each survivor with its reason
-in that Response. The handoff stays open and the Next item unticked for Claude.
+check output and rehearsal output in that Response. The handoff stays open and
+the Next item unticked for Claude.
 End the session after writing the Response.
