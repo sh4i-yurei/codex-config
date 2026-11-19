@@ -18,7 +18,7 @@ def test_python_ci_caller():
         "permissions": {"contents": "read"},
         "jobs": {
             "python": {
-                "uses": "sh4i-yurei/ci-workflows/.github/workflows/python.yml@6fa70095587800bf834d27d1cf2313a7b8dbb168",
+                "uses": "sh4i-yurei/ci-workflows/.github/workflows/python.yml@abf03158b1efda671529abb6b5b5c6f430d18fc4",
                 "with": {
                     "coverage_floor": "1",
                     "install_command": "python -m pip install ruff==0.16.0 pytest==9.1.1 pytest-cov==7.1.0",
