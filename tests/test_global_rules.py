@@ -11,6 +11,35 @@ BUILD_SKILL = ROOT / "skills" / "build-from-spec" / "SKILL.md"
 
 
 class GlobalRulesTests(unittest.TestCase):
+    def test_handoff_response_replies_to_live_sender(self):
+        text = RULES.read_text()
+        sentence = (
+            "After writing the Response to a handoff and setting its `state:`, "
+            "when its frontmatter names a session in `reply_to:`, send it back "
+            "with `python3 ~/Documents/claude-config/tools/workflow/handoff_send.py "
+            "reply <file>`, which tells that session its answer is there; "
+            "when `reply_to:` is empty, don't run it."
+        )
+        paragraphs = [
+            " ".join(paragraph.splitlines())
+            for paragraph in text.split("\n\n")
+            if paragraph.startswith("Handoffs to and from Claude are notes in")
+        ]
+        self.assertEqual(
+            paragraphs,
+            [
+                "Handoffs to and from Claude are notes in "
+                "`~/Documents/Second_Brain/05_Agents/handoffs/`: goals, review "
+                'requests and their verdicts, "resume" messages and status reports. '
+                "The rules are in `05_Agents/README.md`, and you may always "
+                "create and edit handoffs there. Create no other files outside "
+                "the repository's own work without Mark's approval: no goal, "
+                "handoff, review, schema or output files in `~/.local/state` "
+                "or anywhere else. " + sentence
+            ],
+        )
+        self.assertEqual(" ".join(text.splitlines()).count(sentence), 1)
+
     def efficiency_section(self):
         text = RULES.read_text()
         heading = "## 11. Working efficiently"
