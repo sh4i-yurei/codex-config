@@ -25,7 +25,11 @@ Handoffs to and from Claude are notes in `~/Documents/Second_Brain/05_Agents/han
 goals, review requests and their verdicts, "resume" messages and status reports. The rules
 are in `05_Agents/README.md`, and you may always create and edit handoffs there. Create no
 other files outside the repository's own work without Mark's approval: no goal, handoff,
-review, schema or output files in `~/.local/state` or anywhere else.
+review, schema or output files in `~/.local/state` or anywhere else. After writing
+the Response to a handoff and setting its `state:`, when its frontmatter names a
+session in `reply_to:`, send it back with `python3
+~/Documents/claude-config/tools/workflow/handoff_send.py reply <file>`, which tells
+that session its answer is there; when `reply_to:` is empty, don't run it.
 
 Before writing the buildlog, read `20_Buildlogs/README.md`. Entries are chronological,
 written in Mark's first person during the work, with real command output and error text.
