@@ -1,0 +1,42 @@
+- mutant: scripts.merge_config.x_merged_config__mutmut_49
+  reason: >-
+    has_memories, inline_permissions and multiline are only ever tested for truth, and the mutant swaps one false value for another, so behaviour is identical.
+- mutant: scripts.merge_config.x_merged_config__mutmut_51
+  reason: >-
+    has_memories, inline_permissions and multiline are only ever tested for truth, and the mutant swaps one false value for another, so behaviour is identical.
+- mutant: scripts.merge_config.x_merged_config__mutmut_53
+  reason: >-
+    has_memories, inline_permissions and multiline are only ever tested for truth, and the mutant swaps one false value for another, so behaviour is identical.
+- mutant: scripts.merge_config.x_merged_config__mutmut_57
+  reason: >-
+    has_memories, inline_permissions and multiline are only ever tested for truth, and the mutant swaps one false value for another, so behaviour is identical.
+- mutant: scripts.merge_config.x_merged_config__mutmut_69
+  reason: >-
+    key_parts(None) changes the section only after an array-table header. Output differs only for an array table under [permissions.mark], where today's merge keeps the empty header and drops its keys. A test that kills this mutant would pin that defect, which is tracked in codex-config #33.
+- mutant: scripts.merge_config.x_merged_config__mutmut_206
+  reason: >-
+    This loop runs only when inline_permissions is true, which requires a top-level permissions key, so the default value is never used.
+- mutant: scripts.merge_config.x_merged_config__mutmut_208
+  reason: >-
+    This loop runs only when inline_permissions is true, which requires a top-level permissions key, so the default value is never used.
+- mutant: scripts.merge_config.x_install_profile_config__mutmut_95
+  reason: >-
+    Without dir, the temporary file is made in the system temporary folder. os.replace still succeeds when that folder is on the same filesystem, and a second filesystem can't be arranged in a portable test.
+- mutant: scripts.merge_config.x_install_profile_config__mutmut_99
+  reason: >-
+    Without dir, the temporary file is made in the system temporary folder. os.replace still succeeds when that folder is on the same filesystem, and a second filesystem can't be arranged in a portable test.
+- mutant: scripts.merge_config.x_install_profile_config__mutmut_96
+  reason: >-
+    The temporary file's prefix is never visible: the file is renamed over config.toml, or removed, before the function returns.
+- mutant: scripts.merge_config.x_install_profile_config__mutmut_100
+  reason: >-
+    The temporary file's prefix is never visible: the file is renamed over config.toml, or removed, before the function returns.
+- mutant: scripts.merge_config.x_install_profile_config__mutmut_104
+  reason: >-
+    The temporary file's prefix is never visible: the file is renamed over config.toml, or removed, before the function returns.
+- mutant: scripts.merge_config.x_install_profile_config__mutmut_105
+  reason: >-
+    The temporary file's prefix is never visible: the file is renamed over config.toml, or removed, before the function returns.
+- mutant: scripts.merge_config.x_install_profile_config__mutmut_97
+  reason: >-
+    delete=None is false, like delete=False, so NamedTemporaryFile behaves identically.

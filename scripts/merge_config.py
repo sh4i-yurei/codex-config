@@ -1,4 +1,4 @@
-"""Copy the versioned permission and memory settings into a machine's Codex config."""
+"""Copy the versioned permission, terminal, and memory settings into Codex config."""
 
 import json
 import os
@@ -83,6 +83,11 @@ def merged_config(base_text: str, profile_text: str) -> str:
         raise ValueError(
             "mark.config.toml must set generate_memories and use_memories to true or false"
         )
+    terminal_ceiling = profile.get("background_terminal_max_timeout")
+    if type(terminal_ceiling) is not int or terminal_ceiling <= 0:
+        raise ValueError(
+            "mark.config.toml must set background_terminal_max_timeout to a positive whole number of milliseconds"
+        )
     owned_memory_keys = {(key,) for key in memories}
     memory_lines = "".join(
         f"{key} = {toml_value(value)}\n" for key, value in memories.items()
@@ -127,6 +132,8 @@ def merged_config(base_text: str, profile_text: str) -> str:
         )
         if section == () and key == ("default_permissions",):
             continue
+        if section == () and key == ("background_terminal_max_timeout",):
+            continue
         if (
             section == ()
             and key
@@ -160,7 +167,11 @@ def merged_config(base_text: str, profile_text: str) -> str:
                     f"{json.dumps(key)} = {toml_value(item)}"
                     for key, item in value.items()
                 )
-    result = f'default_permissions = ":danger-full-access"\n\n{other}\n\n{permission_tables.rstrip()}\n'
+    result = (
+        'default_permissions = ":danger-full-access"\n'
+        f"background_terminal_max_timeout = {terminal_ceiling}\n\n"
+        f"{other}\n\n{permission_tables.rstrip()}\n"
+    )
     tomllib.loads(result)
     return result
 
@@ -177,6 +188,9 @@ def install_profile_config(home: Path, profile_path: Path) -> None:
     desired = tomllib.loads(profile_text)
     if (
         current.get("default_permissions") == ":danger-full-access"
+        and type(current.get("background_terminal_max_timeout")) is int
+        and current.get("background_terminal_max_timeout")
+        == desired.get("background_terminal_max_timeout")
         and current.get("permissions", {}).get("mark") == desired["permissions"]["mark"]
         and all(
             current.get("memories", {}).get(key) is value

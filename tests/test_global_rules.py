@@ -61,7 +61,11 @@ class GlobalRulesTests(unittest.TestCase):
             "never the design of the code",
             "60_Operational_Manual/68_Dev_Workflow/codex-build-loop.md",
             "Never wait in a loop.",
-            "time limit long enough to finish in one call",
+            "make one empty `write_stdin` with `yield_time_ms` 3600000",
+            "inside the cell in code mode",
+            "one `wait` on it with 3600000",
+            "send Ctrl-C through `write_stdin`, report and stop",
+            "Never wait on a server.",
             "one patch per change",
             "Do not run a formatter yourself on Python, Rust or Go files",
             "Unable to format",
@@ -75,6 +79,7 @@ class GlobalRulesTests(unittest.TestCase):
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, prose)
+        self.assertNotIn("time limit long enough to finish in one call", prose)
 
     def test_efficiency_section_stays_concise(self):
         self.assertLessEqual(len(self.efficiency_section().splitlines()), 20)

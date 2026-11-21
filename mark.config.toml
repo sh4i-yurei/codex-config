@@ -1,4 +1,5 @@
 default_permissions = "mark"
+background_terminal_max_timeout = 3600000
 
 [permissions.mark]
 description = "Project work with writes limited to the current workspace and project records."
