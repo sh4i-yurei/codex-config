@@ -47,6 +47,140 @@ def profile_memories_in(parsed):
 
 
 class SetupTests(unittest.TestCase):
+    def test_profile_declares_terminal_wait_ceiling(self):
+        profile = tomllib.loads((ROOT / "mark.config.toml").read_text())
+        self.assertIn("background_terminal_max_timeout", profile)
+        value = profile["background_terminal_max_timeout"]
+        self.assertIs(type(value), int)
+        self.assertEqual(value, 3600000)
+
+    def test_install_places_terminal_ceiling_at_top_level(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            config = home / ".codex/config.toml"
+            config.parent.mkdir()
+            config.write_text(
+                'model = "gpt-6-sol"\n[tui]\nscreen_reader_detection_done = true\n'
+            )
+            install(home)
+            result = config.read_text()
+            parsed = tomllib.loads(result)
+            value = parsed["background_terminal_max_timeout"]
+            self.assertIs(type(value), int)
+            self.assertEqual(value, 3600000)
+            self.assertEqual(
+                result.count("background_terminal_max_timeout = 3600000"), 1
+            )
+            self.assertLess(
+                result.index("background_terminal_max_timeout = 3600000"),
+                result.index("["),
+            )
+            self.assertEqual(parsed["model"], "gpt-6-sol")
+            self.assertTrue(parsed["tui"]["screen_reader_detection_done"])
+
+    def test_merge_replaces_only_top_level_terminal_ceiling(self):
+        profile = (ROOT / "mark.config.toml").read_text()
+        cases = (
+            (
+                'model = "x"\nbackground_terminal_max_timeout = 300000\n[tui]\na = 1\n',
+                "tui",
+            ),
+            ('"background_terminal_max_timeout" = 300000\n', None),
+            ("[profiles.fast]\nbackground_terminal_max_timeout = 5000\n", "fast"),
+        )
+        for base, nested in cases:
+            with self.subTest(base=base):
+                result = merge_config.merged_config(base, profile)
+                parsed = tomllib.loads(result)
+                self.assertIs(type(parsed["background_terminal_max_timeout"]), int)
+                self.assertEqual(parsed["background_terminal_max_timeout"], 3600000)
+                self.assertEqual(
+                    result.count("background_terminal_max_timeout = 3600000"), 1
+                )
+                if nested == "tui":
+                    self.assertEqual(parsed["model"], "x")
+                    self.assertEqual(parsed["tui"]["a"], 1)
+                if nested == "fast":
+                    self.assertEqual(
+                        parsed["profiles"]["fast"]["background_terminal_max_timeout"],
+                        5000,
+                    )
+
+    def test_merge_reads_terminal_ceiling_from_profile(self):
+        profile = (
+            (ROOT / "mark.config.toml")
+            .read_text()
+            .replace(
+                "background_terminal_max_timeout = 3600000",
+                "background_terminal_max_timeout = 1800000",
+                1,
+            )
+        )
+        parsed = tomllib.loads(merge_config.merged_config("", profile))
+        self.assertEqual(parsed["background_terminal_max_timeout"], 1800000)
+
+    def test_merge_rejects_invalid_terminal_ceiling(self):
+        profile = (ROOT / "mark.config.toml").read_text()
+        message = "^mark.config.toml must set background_terminal_max_timeout to a positive whole number of milliseconds$"
+        for replacement in ("true", '"3600000"', "0", "-1", "3600000.0", None):
+            with self.subTest(replacement=replacement):
+                line = (
+                    "background_terminal_max_timeout = " + replacement + "\n"
+                    if replacement is not None
+                    else ""
+                )
+                changed = profile.replace(
+                    "background_terminal_max_timeout = 3600000\n", line, 1
+                )
+                with self.assertRaisesRegex(ValueError, message):
+                    merge_config.merged_config("", changed)
+
+    def test_install_repairs_terminal_ceiling_and_is_repeatable(self):
+        for replacement in (
+            "background_terminal_max_timeout = 300000",
+            "",
+            "background_terminal_max_timeout = 3600000.0",
+        ):
+            with (
+                self.subTest(replacement=replacement),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                home = Path(directory)
+                install(home)
+                config = home / ".codex/config.toml"
+                changed = config.read_text().replace(
+                    "background_terminal_max_timeout = 3600000", replacement, 1
+                )
+                config.write_text(changed)
+                _, output = install(home)
+                backups = list(config.parent.glob("config.toml.bak-*"))
+                self.assertEqual(len(backups), 1)
+                self.assertEqual(
+                    output, f"Backup: {backups[0]}\n" + configured_line(config)
+                )
+                parsed = tomllib.loads(config.read_text())
+                self.assertIs(type(parsed["background_terminal_max_timeout"]), int)
+                self.assertEqual(parsed["background_terminal_max_timeout"], 3600000)
+                before = config.read_bytes()
+                _, output = install(home)
+                self.assertEqual(output, ok_line(config))
+                self.assertEqual(config.read_bytes(), before)
+
+    def test_install_rejects_profile_without_terminal_ceiling(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            profile = home / "profile.toml"
+            profile.write_text(
+                (ROOT / "mark.config.toml")
+                .read_text()
+                .replace("background_terminal_max_timeout = 3600000\n", "", 1)
+            )
+            with self.assertRaisesRegex(
+                ValueError,
+                "^mark.config.toml must set background_terminal_max_timeout to a positive whole number of milliseconds$",
+            ):
+                install(home, profile)
+
     def test_profile_merge_preserves_machine_state_and_is_repeatable(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
@@ -109,10 +243,14 @@ class SetupTests(unittest.TestCase):
 
     def test_profile_memory_settings_must_be_true_or_false(self):
         profile = (
-            'default_permissions = "mark"\n[permissions.mark]\nextends = ":workspace"\n'
+            'default_permissions = "mark"\nbackground_terminal_max_timeout = 3600000\n'
+            '[permissions.mark]\nextends = ":workspace"\n'
             '[memories]\ngenerate_memories = true\nuse_memories = "yes"\n'
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(
+            ValueError,
+            "^mark.config.toml must set generate_memories and use_memories to true or false$",
+        ):
             merge_config.merged_config("", profile)
 
     def test_runtime_hook_state_does_not_trigger_rewrite(self):
@@ -324,7 +462,10 @@ class SetupTests(unittest.TestCase):
             "[memories]", 1
         )[0]
         self.assertTrue(
-            result.startswith('default_permissions = ":danger-full-access"\n\n')
+            result.startswith(
+                'default_permissions = ":danger-full-access"\n'
+                "background_terminal_max_timeout = 3600000\n\n"
+            )
         )
         self.assertTrue(result.endswith(permission_tables.rstrip() + "\n"))
         parsed = tomllib.loads(result)
