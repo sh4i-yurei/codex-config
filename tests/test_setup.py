@@ -4,10 +4,13 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 import unittest
 from contextlib import redirect_stdout
+from datetime import datetime, timezone
 from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 import tomllib
 
@@ -326,6 +329,167 @@ class SetupTests(unittest.TestCase):
         self.assertTrue(result.endswith(permission_tables.rstrip() + "\n"))
         parsed = tomllib.loads(result)
         self.assertEqual(parsed["memories"], PROFILE_MEMORIES)
+
+    def test_install_rebuilds_missing_profile_tables(self):
+        for initial in ('default_permissions = ":danger-full-access"\n', None):
+            with (
+                self.subTest(initial=initial),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                home = Path(directory)
+                config = home / ".codex/config.toml"
+                if initial is None:
+                    install(home)
+                    initial = config.read_text().split("[memories]", 1)[0]
+                else:
+                    config.parent.mkdir()
+                config.write_text(initial)
+                _, output = install(home)
+                backups = list(config.parent.glob("config.toml.bak-*"))
+                self.assertEqual(len(backups), 1)
+                self.assertEqual(
+                    output, f"Backup: {backups[0]}\n" + configured_line(config)
+                )
+                parsed = tomllib.loads(config.read_text())
+                self.assertEqual(parsed["default_permissions"], ":danger-full-access")
+                self.assertEqual(parsed["permissions"]["mark"], PROFILE_MARK)
+                self.assertEqual(parsed["memories"], PROFILE_MEMORIES)
+
+    def test_backup_stamp_uses_utc_even_when_local_zone_differs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            config = home / ".codex/config.toml"
+            config.parent.mkdir()
+            config.write_text('model = "gpt-6-sol"\n')
+            try:
+                with patch.dict(os.environ, {"TZ": "EST5"}):
+                    time.tzset()
+                    before = datetime.now(timezone.utc)
+                    _, output = install(home)
+                    after = datetime.now(timezone.utc)
+            finally:
+                time.tzset()
+            backups = list(config.parent.glob("config.toml.bak-*"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(
+                output, f"Backup: {backups[0]}\n" + configured_line(config)
+            )
+            match = re.fullmatch(
+                r"config\.toml\.bak-([0-9]{8}-[0-9]{6}-[0-9]{6})",
+                backups[0].name,
+            )
+            self.assertIsNotNone(match)
+            stamp = datetime.strptime(match.group(1), "%Y%m%d-%H%M%S-%f").replace(
+                tzinfo=timezone.utc
+            )
+            self.assertLessEqual(before, stamp)
+            self.assertLessEqual(stamp, after)
+
+    def test_merge_rejects_profile_without_memories_table(self):
+        profile = (ROOT / "mark.config.toml").read_text().split("[memories]", 1)[0]
+        with self.assertRaisesRegex(
+            ValueError,
+            "^mark.config.toml must set generate_memories and use_memories to true or false$",
+        ):
+            merge_config.merged_config("", profile)
+
+    def test_merge_preserves_settings_around_mark_sections(self):
+        cases = (
+            (
+                '[permissions.mark.filesystem]\nnote = """\nold\n"""\n'
+                + "[tui]\nscreen_reader_detection_done = true\n",
+                lambda parsed: self.assertTrue(
+                    parsed["tui"]["screen_reader_detection_done"]
+                ),
+            ),
+            (
+                '[permissions.mark.network] # was = """\nenabled = false\n'
+                + "[tui]\nscreen_reader_detection_done = true\n",
+                lambda parsed: self.assertTrue(
+                    parsed["tui"]["screen_reader_detection_done"]
+                ),
+            ),
+            (
+                '  # note = """\ndefault_permissions = ":workspace"\n',
+                lambda parsed: self.assertEqual(
+                    parsed["default_permissions"], ":danger-full-access"
+                ),
+            ),
+            (
+                '  # note = 1\nmodel = "gpt-6-sol"\n',
+                lambda parsed: self.assertEqual(parsed["model"], "gpt-6-sol"),
+            ),
+            (
+                'permissions.mark.extends = ":read-only"\nmodel = "gpt-6-sol"\n',
+                lambda parsed: self.assertEqual(parsed["model"], "gpt-6-sol"),
+            ),
+            (
+                'memories.use_memories = false\nmodel = "gpt-6-sol"\n',
+                lambda parsed: self.assertEqual(parsed["model"], "gpt-6-sol"),
+            ),
+            (
+                'permissions = { other = { extends = ":workspace" } }\n'
+                + 'model = "gpt-6-sol"\n',
+                lambda parsed: (
+                    self.assertEqual(parsed["model"], "gpt-6-sol"),
+                    self.assertEqual(
+                        parsed["permissions"]["other"]["extends"], ":workspace"
+                    ),
+                ),
+            ),
+            (
+                'permissions = { other = { extends = ":workspace", description = "kept" } }\n',
+                lambda parsed: self.assertEqual(
+                    parsed["permissions"]["other"],
+                    {"extends": ":workspace", "description": "kept"},
+                ),
+            ),
+        )
+        profile = (ROOT / "mark.config.toml").read_text()
+        for base, check in cases:
+            with self.subTest(base=base):
+                result = merge_config.merged_config(base, profile)
+                parsed = tomllib.loads(result)
+                self.assertEqual(parsed["permissions"]["mark"], PROFILE_MARK)
+                check(parsed)
+
+    def test_merge_preserves_machine_text_and_extra_memories(self):
+        profile = (ROOT / "mark.config.toml").read_text()
+        cases = (
+            ('\tmodel = "gpt-6-sol"\n', '\tmodel = "gpt-6-sol"\n', "gpt-6-sol"),
+            ("X = 1\n", "X = 1\n", 1),
+        )
+        for base, retained, value in cases:
+            with self.subTest(base=base):
+                result = merge_config.merged_config(base, profile)
+                self.assertIn(retained, result)
+                parsed = tomllib.loads(result)
+                self.assertEqual(
+                    parsed["model" if isinstance(value, str) else "X"], value
+                )
+        base = "memories = { max_unused_days = 45, min_rollout_idle_hours = 6 }\n"
+        result = merge_config.merged_config(base, profile)
+        parsed = tomllib.loads(result)
+        self.assertEqual(profile_memories_in(parsed), PROFILE_MEMORIES)
+        self.assertEqual(parsed["memories"]["max_unused_days"], 45)
+        self.assertEqual(parsed["memories"]["min_rollout_idle_hours"], 6)
+
+    def test_merge_handles_profile_comments_containing_table_names(self):
+        profile = (ROOT / "mark.config.toml").read_text()
+        marked = profile.replace(
+            "[permissions.mark.network]\n",
+            "[permissions.mark.network]\n# copied from [permissions.mark]\n",
+            1,
+        )
+        parsed = tomllib.loads(merge_config.merged_config("", marked))
+        self.assertEqual(
+            parsed["permissions"]["mark"], tomllib.loads(marked)["permissions"]["mark"]
+        )
+        remembered = profile.replace(
+            "[memories]\n", "[memories]\n# keys under [memories] are copied\n", 1
+        )
+        parsed = tomllib.loads(merge_config.merged_config("", remembered))
+        self.assertEqual(parsed["memories"], tomllib.loads(remembered)["memories"])
 
 
 if __name__ == "__main__":
