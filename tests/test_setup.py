@@ -340,7 +340,11 @@ class SetupTests(unittest.TestCase):
                 config = home / ".codex/config.toml"
                 if initial is None:
                     install(home)
-                    initial = config.read_text().split("[memories]", 1)[0]
+                    text = config.read_text()
+                    initial = (
+                        text[: text.index("[memories]")]
+                        + text[text.index("[permissions.mark]") :]
+                    )
                 else:
                     config.parent.mkdir()
                 config.write_text(initial)
