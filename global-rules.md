@@ -180,8 +180,10 @@ text out of it. They govern how you work, never the design of the code. The meas
 each one are under "Why the rules are there" in
 `60_Operational_Manual/68_Dev_Workflow/codex-build-loop.md`.
 
-- Never wait in a loop. Give slow commands a time limit long enough to finish in one call, and
-  keep only the summary or the last lines.
+- Never wait in a loop. When `exec_command` returns with the command still running, make one
+  empty `write_stdin` with `yield_time_ms` 3600000, inside the cell in code mode, and if the cell
+  yields, one `wait` on it with 3600000. If it is still running after that, send Ctrl-C through
+  `write_stdin`, report and stop. Never wait on a server. Keep only the summary or the last lines.
 - Make one patch per change across the files it touches. Do not run a formatter yourself on
   Python, Rust or Go files: the patch hook formats each one a patch touches, and prints
   "Unable to format" when it can't. Then, and for every other kind of file, follow the
