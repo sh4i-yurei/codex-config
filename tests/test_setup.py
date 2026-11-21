@@ -119,6 +119,22 @@ class SetupTests(unittest.TestCase):
         parsed = tomllib.loads(merge_config.merged_config("", profile))
         self.assertEqual(parsed["background_terminal_max_timeout"], 1800000)
 
+    def test_merge_accepts_smallest_positive_terminal_ceiling(self):
+        profile = (
+            (ROOT / "mark.config.toml")
+            .read_text()
+            .replace(
+                "background_terminal_max_timeout = 3600000",
+                "background_terminal_max_timeout = 1",
+                1,
+            )
+        )
+        result = merge_config.merged_config('model = "gpt-6-sol"\n', profile)
+        self.assertEqual(result.splitlines()[1], "background_terminal_max_timeout = 1")
+        value = tomllib.loads(result)["background_terminal_max_timeout"]
+        self.assertIs(type(value), int)
+        self.assertEqual(value, 1)
+
     def test_merge_rejects_invalid_terminal_ceiling(self):
         profile = (ROOT / "mark.config.toml").read_text()
         message = "^mark.config.toml must set background_terminal_max_timeout to a positive whole number of milliseconds$"
@@ -180,6 +196,43 @@ class SetupTests(unittest.TestCase):
                 "^mark.config.toml must set background_terminal_max_timeout to a positive whole number of milliseconds$",
             ):
                 install(home, profile)
+
+    def test_install_restores_missing_mark_permissions_table(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            config = home / ".codex/config.toml"
+            config.parent.mkdir()
+            config.write_text(
+                'default_permissions = ":danger-full-access"\n'
+                "background_terminal_max_timeout = 3600000\n"
+            )
+            _, output = install(home)
+            backups = list(config.parent.glob("config.toml.bak-*"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(
+                output, f"Backup: {backups[0]}\n" + configured_line(config)
+            )
+            self.assertEqual(
+                tomllib.loads(config.read_text())["permissions"]["mark"], PROFILE_MARK
+            )
+
+    def test_install_unchanged_big_integer_memory_setting_reports_ok(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            config = home / ".codex/config.toml"
+            config.parent.mkdir()
+            config.write_text('model = "gpt-6-sol"\n')
+            profile = home / "profile.toml"
+            profile.write_text(
+                (ROOT / "mark.config.toml")
+                .read_text()
+                .replace("[memories]\n", "[memories]\nmax_unused_days = 1000\n", 1)
+            )
+            install(home, profile)
+            before = config.read_bytes()
+            _, output = install(home, profile)
+            self.assertEqual(output, ok_line(config))
+            self.assertEqual(config.read_bytes(), before)
 
     def test_profile_merge_preserves_machine_state_and_is_repeatable(self):
         with tempfile.TemporaryDirectory() as directory:
