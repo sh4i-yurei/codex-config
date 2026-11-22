@@ -437,6 +437,23 @@ class GlobalRulesTests(unittest.TestCase):
         )
         self.assertNotIn("authorizes pushing its named branch", text)
 
+    def test_git_section_describes_github_voice(self):
+        text = RULES.read_text()
+        match = re.search(
+            r"^## 6\. Git\n(?P<body>.*?)(?=^## |\Z)",
+            text,
+            re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        body = " ".join(match.group("body").split())
+        self.assertIn(
+            "Everything written on GitHub, from commit messages and pull requests to "
+            "issues and review comments, describes the change, the problem and the reason, "
+            "and never refers to Mark or to any agent or AI; identifiers in the code or "
+            "configuration stay.",
+            body,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

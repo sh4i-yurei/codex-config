@@ -104,9 +104,12 @@ require the same authorization as other live infrastructure changes.
 Outside a build handoff, work on a feature branch, then a pull request, then merge after review. Commit and push only
 when Mark asks; a specification explicitly requiring committed deliverables authorizes
 those commits. Keep unrelated working-tree changes intact. Messages describe the contents
-and reason for the change. Never add AI attribution, `Co-authored-by` trailers or
-generated-with lines to commits or pull requests. Public artifacts stand on their own and
-contain no private estate details or private vault links.
+and reason for the change. Everything written on GitHub, from commit messages and pull
+requests to issues and review comments, describes the change, the problem and the reason,
+and never refers to Mark or to any agent or AI; identifiers in the code or configuration
+stay. Never add AI attribution, `Co-authored-by` trailers or generated-with lines to commits
+or pull requests. Public artifacts stand on their own and contain no private estate details
+or private vault links.
 
 A build handoff authorizes committing to its named branch only; never push, force-push,
 open or edit a pull request, or merge under that handoff.
