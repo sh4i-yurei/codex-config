@@ -1,38 +1,103 @@
 {
   "description": "Codex session orientation, targeted formatting, and the git workflow guard",
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume|compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 ~/.codex/hooks/session_start.py",
-            "timeout": 5,
-            "additionalContextLimit": 1000
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
-        "matcher": "apply_patch",
         "hooks": [
           {
-            "type": "command",
             "command": "python3 ~/.codex/hooks/format_patch.py",
-            "timeout": 35
+            "timeout": 35,
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": "apply_patch"
       }
     ],
     "PreToolUse": [
       {
         "hooks": [
           {
-            "type": "command",
             "command": "python3 ~/.claude/hooks/git-guard.py",
-            "timeout": 10
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "env RTK_TELEMETRY_DISABLED=1 RTK_SUPPRESS_HOOK_WARNING=1 ~/.local/bin/rtk hook codex",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "additionalContextLimit": 1000,
+            "command": "python3 ~/.codex/hooks/session_start.py",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "startup|resume|compact"
+      },
+      {
+        "hooks": [
+          {
+            "command": "bash '/var/home/sh4i_yurei/.codex/herdr-agent-state.sh' session",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/var/home/sh4i_yurei/.npm-global/lib/node_modules/@openrig/cli/daemon/assets/plugins/openrig-core/hooks/scripts/activity-relay.cjs\"",
+            "timeout": 5,
+            "statusMessage": "OpenRig activity"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/var/home/sh4i_yurei/.npm-global/lib/node_modules/@openrig/cli/daemon/assets/plugins/openrig-core/hooks/scripts/activity-relay.cjs\"",
+            "timeout": 5,
+            "statusMessage": "OpenRig activity"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/var/home/sh4i_yurei/.npm-global/lib/node_modules/@openrig/cli/daemon/assets/plugins/openrig-core/hooks/scripts/activity-relay.cjs\"",
+            "timeout": 5,
+            "statusMessage": "OpenRig activity"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/var/home/sh4i_yurei/.npm-global/lib/node_modules/@openrig/cli/daemon/assets/plugins/openrig-core/hooks/scripts/activity-relay.cjs\"",
+            "timeout": 5,
+            "statusMessage": "OpenRig activity"
           }
         ]
       }
