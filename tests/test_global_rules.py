@@ -15,10 +15,13 @@ class GlobalRulesTests(unittest.TestCase):
         text = RULES.read_text()
         sentence = (
             "After writing the Response to a handoff and setting its `state:`, "
-            "when its frontmatter names a session in `reply_to:`, send it back "
-            "with `python3 ~/Documents/claude-config/tools/workflow/handoff_send.py "
-            "reply <file>`, which tells that session its answer is there; "
-            "when `reply_to:` is empty, don't run it."
+            "stop: never run `handoff_send.py reply` or any other command that reaches "
+            "another session, because the sandbox denies herdr's socket and the requesting "
+            "seat delivers the reply. In a git worktree, Codex commits only when it was "
+            'started with `--add-dir "$(git rev-parse --absolute-git-dir)" --add-dir '
+            '"$(git rev-parse --path-format=absolute --git-common-dir)"`; if a commit '
+            "fails with `Read-only file system` on `index.lock`, stop and report that those "
+            "two flags were missing."
         )
         paragraphs = [
             " ".join(paragraph.splitlines())
@@ -39,6 +42,7 @@ class GlobalRulesTests(unittest.TestCase):
             ],
         )
         self.assertEqual(" ".join(text.splitlines()).count(sentence), 1)
+        self.assertNotIn("handoff_send.py reply <file>", text)
 
     def efficiency_section(self):
         text = RULES.read_text()
@@ -188,11 +192,7 @@ class GlobalRulesTests(unittest.TestCase):
         for phrase in (
             "create the interface first when tests need it",
             "first failure is an assertion",
-            "In keepbreathing-infra, run each affected driver job with `python3 -m ci.run_driver <job>` before committing",
-            "record its last line",
-            "If `ci.run_driver` refuses a job because the job runs in CI only",
-            "record that refusal line",
-            "that CI is the job's first run",
+            "In keepbreathing-infra, don't run driver jobs: they need a host bridge the sandbox denies, so the owner seat runs the affected jobs after your commit.",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, prose)

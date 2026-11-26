@@ -168,7 +168,7 @@ def merged_config(base_text: str, profile_text: str) -> str:
                     for key, item in value.items()
                 )
     result = (
-        'default_permissions = ":danger-full-access"\n'
+        'default_permissions = "mark"\n'
         f"background_terminal_max_timeout = {terminal_ceiling}\n\n"
         f"{other}\n\n{permission_tables.rstrip()}\n"
     )
@@ -187,7 +187,7 @@ def install_profile_config(home: Path, profile_path: Path) -> None:
     current = tomllib.loads(old)
     desired = tomllib.loads(profile_text)
     if (
-        current.get("default_permissions") == ":danger-full-access"
+        current.get("default_permissions") == "mark"
         and type(current.get("background_terminal_max_timeout")) is int
         and current.get("background_terminal_max_timeout")
         == desired.get("background_terminal_max_timeout")
@@ -197,11 +197,11 @@ def install_profile_config(home: Path, profile_path: Path) -> None:
             for key, value in desired["memories"].items()
         )
     ):
-        print(f"OK: {config} already has the full-access default and mark profile")
+        print(f"OK: {config} already has the sandboxed mark default and profile")
         return
     new = merged_config(old, profile_text)
     if new == old:
-        print(f"OK: {config} already has the full-access default and mark profile")
+        print(f"OK: {config} already has the sandboxed mark default and profile")
         return
     config.parent.mkdir(parents=True, exist_ok=True)
     if config.exists():
@@ -221,5 +221,5 @@ def install_profile_config(home: Path, profile_path: Path) -> None:
     finally:
         temporary.unlink(missing_ok=True)
     print(
-        f"Configured: {config} defaults to full access and keeps the mark profile and machine settings"
+        f"Configured: {config} defaults to the sandboxed mark profile and keeps machine settings"
     )
