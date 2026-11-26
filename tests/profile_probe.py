@@ -6,11 +6,12 @@ HOME = Path.home()
 VAULT = HOME / "Documents/Second_Brain"
 PROBES = {
     HOME / "Documents/codex-config/.codex-profile-probe": True,
-    VAULT / "10_Projects/16_Tooling/.codex-profile-probe": True,
-    VAULT / "20_Buildlogs/codex-setup/.codex-profile-probe": True,
-    VAULT / ".codex-profile-probe": False,
-    VAULT / "00_Inbox/.codex-profile-probe": False,
-    VAULT / "70_Research/.codex-profile-probe": False,
+    HOME / "Documents/codex-config/.git/.codex-profile-probe": True,
+    VAULT / ".codex-profile-probe": True,
+    VAULT / "00_Inbox/.codex-profile-probe": True,
+    HOME / ".codex-profile-probe": False,
+    HOME / "Documents/.codex-profile-probe": False,
+    HOME / ".config/.codex-profile-probe": False,
 }
 
 
@@ -37,7 +38,9 @@ def main() -> int:
     if failures:
         print("FAIL: " + ", ".join(failures))
         return 1
-    print("PASS: workspace and project records writable; rest of vault read-only")
+    print(
+        "PASS: workspace, its git folder and the vault writable; the other probed folders read-only"
+    )
     return 0
 
 

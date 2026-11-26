@@ -45,11 +45,8 @@ run the full check once before the done-when, then the done-when itself. Keep
 their real output. Make live network requests only when the done-when requires one.
 
 Commit only after the CI rehearsal the handoff names passes on that commit.
-In keepbreathing-infra, run each affected driver job with
-`python3 -m ci.run_driver <job>` before committing, and record its last line.
-If `ci.run_driver` refuses a job because the job runs in CI only, record that
-refusal line and that CI is the job's first run, and run the other affected
-jobs.
+In keepbreathing-infra, don't run driver jobs: they need a host bridge the sandbox
+denies, so the owner seat runs the affected jobs after your commit.
 Never push, wait for CI or run a review. Claude reviews the local commit, pushes
 and opens the pull request. If a
 failure has the same cause as an earlier failure in the item, do not patch it a

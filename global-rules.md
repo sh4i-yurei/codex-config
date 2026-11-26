@@ -26,10 +26,12 @@ goals, review requests and their verdicts, "resume" messages and status reports.
 are in `05_Agents/README.md`, and you may always create and edit handoffs there. Create no
 other files outside the repository's own work without Mark's approval: no goal, handoff,
 review, schema or output files in `~/.local/state` or anywhere else. After writing
-the Response to a handoff and setting its `state:`, when its frontmatter names a
-session in `reply_to:`, send it back with `python3
-~/Documents/claude-config/tools/workflow/handoff_send.py reply <file>`, which tells
-that session its answer is there; when `reply_to:` is empty, don't run it.
+the Response to a handoff and setting its `state:`, stop: never run `handoff_send.py
+reply` or any other command that reaches another session, because the sandbox denies
+herdr's socket and the requesting seat delivers the reply. In a git worktree, Codex
+commits only when it was started with `--add-dir "$(git rev-parse --absolute-git-dir)" --add-dir "$(git rev-parse --path-format=absolute --git-common-dir)"`;
+if a commit fails with `Read-only file system` on `index.lock`, stop and report that
+those two flags were missing.
 
 Before writing the buildlog, read `20_Buildlogs/README.md`. Entries are chronological,
 written in Mark's first person during the work, with real command output and error text.

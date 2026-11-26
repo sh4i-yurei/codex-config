@@ -20,9 +20,9 @@ and is never replaced by a link. Codex's command guard is not here: `hooks.json`
 | `hooks.json` | Wire hooks to Codex's events | Codex hook configuration | — | Reimplement the command guard; it calls `claude-config`'s `git-guard.py` |
 | `hooks/session_start.py` | Orient a new or resumed session | SessionStart event, additional context with a size limit | Fails quietly | Change files |
 | `hooks/format_patch.py` | Format the files a patch touched | PostToolUse event for `apply_patch` | Leaves files unchanged on error | Format files the patch didn't touch |
-| `mark.config.toml` | The `mark` permission profile, terminal wait ceiling, and memory settings | Codex config profile | — | Replace the machine's base config |
-| `scripts/setup.py`, `setup.sh` | Link each piece into place, keep dated backups, merge the terminal wait ceiling and memory settings | Run by hand | Lists missing pieces as pending | Overwrite a file without keeping a backup |
-| `scripts/merge_config.py` | Merge settings into the base config; own the top-level `default_permissions` and `background_terminal_max_timeout`, the `[permissions.mark]` tables, and the memory settings | Called by setup | Refuses to write invalid TOML | Remove settings it doesn't own |
+| `mark.config.toml` | The sandboxed `mark` permission profile every Codex run uses, the terminal wait ceiling, and memory settings | Codex config profile, merged into the base config as the default permission profile | — | Replace the machine's base config |
+| `scripts/setup.py`, `setup.sh` | Link each piece into place, keep dated backups, merge the sandboxed default permission profile, the terminal wait ceiling and memory settings | Run by hand | Lists missing pieces as pending | Overwrite a file without keeping a backup |
+| `scripts/merge_config.py` | Merge settings into the base config; own the top-level `default_permissions`, always `"mark"`, and `background_terminal_max_timeout`, the `[permissions.mark]` tables, and the memory settings | Called by setup | Refuses to write invalid TOML | Remove settings it doesn't own |
 | `.github/workflows/ci.yml` | Call the pinned shared Python check | Every push | CI reports a failed check | Hold a copy of the shared checks' logic |
 | `pyproject.toml` | Hold the pytest and mutmut settings the shared check reads | Python tool configuration | A check rejects invalid settings | Duplicate the shared checks' logic |
 | `skills/` | Codex skills, linked as `~/.agents/skills` | Loaded when a skill applies | Per skill | Duplicate a rule from `global-rules.md` |

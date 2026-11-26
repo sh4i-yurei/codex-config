@@ -2,17 +2,39 @@ default_permissions = "mark"
 background_terminal_max_timeout = 3600000
 
 [permissions.mark]
-description = "Project work with writes limited to the current workspace and project records."
-extends = ":workspace"
-
-[permissions.mark.workspace_roots]
-"~/Documents/Second_Brain/10_Projects" = true
-"~/Documents/Second_Brain/20_Buildlogs" = true
+description = "Every Codex run: writes only to the workspace, its git folder and named folders; secrets and host bridges denied."
 
 [permissions.mark.filesystem]
-"~/Documents/Second_Brain" = "read"
-"~/Documents/Second_Brain/10_Projects" = "write"
-"~/Documents/Second_Brain/20_Buildlogs" = "write"
+":root" = "read"
+":tmpdir" = "write"
+":slash_tmp" = "write"
+"~/.cache" = "write"
+"~/.npm" = "write"
+"~/.ansible/tmp" = "write"
+"~/.claude" = "write"
+"~/Documents/Second_Brain" = "write"
+"~/Documents/lockbox" = "deny"
+"~/.codex/auth.json" = "deny"
+"~/.claude/.credentials.json" = "deny"
+"~/.var/app" = "deny"
+"~/.config/google-chrome" = "deny"
+"~/.config/chromium" = "deny"
+"~/.config/BraveSoftware" = "deny"
+"~/.mozilla" = "deny"
+"~/.config/Bitwarden CLI" = "deny"
+"~/.npmrc" = "deny"
+"~/.ansible/galaxy_token" = "deny"
+"~/.openrig/secrets" = "deny"
+"~/.openrig/private" = "deny"
+"~/.openrig/activity-hook-token" = "deny"
+"~/.config/herdr" = "deny"
+"/home" = "deny"
+"/run/host" = "deny"
+"/run/user/1000" = "deny"
+
+[permissions.mark.filesystem.":workspace_roots"]
+"." = "write"
+".git" = "write"
 
 [permissions.mark.network]
 enabled = true

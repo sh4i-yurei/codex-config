@@ -31,11 +31,11 @@ def install(home, profile=ROOT / "mark.config.toml"):
 
 
 def configured_line(config):
-    return f"Configured: {config} defaults to full access and keeps the mark profile and machine settings\n"
+    return f"Configured: {config} defaults to the sandboxed mark profile and keeps machine settings\n"
 
 
 def ok_line(config):
-    return f"OK: {config} already has the full-access default and mark profile\n"
+    return f"OK: {config} already has the sandboxed mark default and profile\n"
 
 
 def setup_env(home):
@@ -255,7 +255,7 @@ class SetupTests(unittest.TestCase):
 
             self.assertIn("Configured:", first.stdout)
             self.assertIn(
-                "already has the full-access default and mark profile", second.stdout
+                "already has the sandboxed mark default and profile", second.stdout
             )
             self.assertEqual(after_first, config.read_text())
             self.assertEqual(len(list(config.parent.glob("config.toml.bak-*"))), 1)
@@ -265,8 +265,8 @@ class SetupTests(unittest.TestCase):
             parsed = tomllib.loads(after_first)
             self.assertEqual(parsed["model"], "gpt-6-sol")
             self.assertTrue(parsed["tui"]["screen_reader_detection_done"])
-            self.assertEqual(parsed["default_permissions"], ":danger-full-access")
-            self.assertEqual(parsed["permissions"]["mark"]["extends"], ":workspace")
+            self.assertEqual(parsed["default_permissions"], "mark")
+            self.assertEqual(parsed["permissions"]["mark"], PROFILE_MARK)
             self.assertEqual(parsed["memories"], PROFILE_MEMORIES)
             for name in ("AGENTS.md", "hooks.json", "hooks", "mark.config.toml"):
                 self.assertTrue((home / ".codex" / name).is_symlink())
@@ -289,7 +289,7 @@ class SetupTests(unittest.TestCase):
             install(home)
             self.assertEqual(first, config.read_text())
             parsed = tomllib.loads(first)
-            self.assertEqual(parsed["default_permissions"], ":danger-full-access")
+            self.assertEqual(parsed["default_permissions"], "mark")
             self.assertEqual(parsed["permissions"]["other"]["extends"], ":read-only")
             self.assertEqual(profile_memories_in(parsed), PROFILE_MEMORIES)
             self.assertEqual(parsed["memories"]["max_unused_days"], 45)
@@ -346,8 +346,8 @@ class SetupTests(unittest.TestCase):
                 install(home)
                 self.assertEqual(first, config.read_text())
                 parsed = tomllib.loads(first)
-                self.assertEqual(parsed["default_permissions"], ":danger-full-access")
-                self.assertEqual(parsed["permissions"]["mark"]["extends"], ":workspace")
+                self.assertEqual(parsed["default_permissions"], "mark")
+                self.assertEqual(parsed["permissions"]["mark"], PROFILE_MARK)
                 self.assertEqual(profile_memories_in(parsed), PROFILE_MEMORIES)
                 if "other" in original:
                     self.assertEqual(
@@ -376,7 +376,7 @@ class SetupTests(unittest.TestCase):
             self.assertEqual(config.stat().st_mode & 0o777, 0o600)
             self.assertEqual(list(config.parent.glob("config.toml.bak-*")), [])
             parsed = tomllib.loads(config.read_text())
-            self.assertEqual(parsed["default_permissions"], ":danger-full-access")
+            self.assertEqual(parsed["default_permissions"], "mark")
             self.assertEqual(parsed["permissions"]["mark"], PROFILE_MARK)
             self.assertEqual(parsed["memories"], PROFILE_MEMORIES)
 
@@ -451,10 +451,10 @@ class SetupTests(unittest.TestCase):
     def test_each_outdated_condition_triggers_rewrite(self):
         changes = (
             (
+                'default_permissions = "mark"',
                 'default_permissions = ":danger-full-access"',
-                'default_permissions = ":workspace"',
             ),
-            ('extends = ":workspace"', 'extends = ":read-only"'),
+            ('"~/.cache" = "write"', '"~/.cache" = "read"'),
             ("use_memories = true", "use_memories = false"),
         )
         for current, outdated in changes:
@@ -475,7 +475,7 @@ class SetupTests(unittest.TestCase):
                     output, f"Backup: {backups[0]}\n" + configured_line(config)
                 )
                 parsed = tomllib.loads(config.read_text())
-                self.assertEqual(parsed["default_permissions"], ":danger-full-access")
+                self.assertEqual(parsed["default_permissions"], "mark")
                 self.assertEqual(parsed["permissions"]["mark"], PROFILE_MARK)
                 self.assertEqual(profile_memories_in(parsed), PROFILE_MEMORIES)
 
@@ -516,7 +516,7 @@ class SetupTests(unittest.TestCase):
         )[0]
         self.assertTrue(
             result.startswith(
-                'default_permissions = ":danger-full-access"\n'
+                'default_permissions = "mark"\n'
                 "background_terminal_max_timeout = 3600000\n\n"
             )
         )
@@ -549,7 +549,7 @@ class SetupTests(unittest.TestCase):
                     output, f"Backup: {backups[0]}\n" + configured_line(config)
                 )
                 parsed = tomllib.loads(config.read_text())
-                self.assertEqual(parsed["default_permissions"], ":danger-full-access")
+                self.assertEqual(parsed["default_permissions"], "mark")
                 self.assertEqual(parsed["permissions"]["mark"], PROFILE_MARK)
                 self.assertEqual(parsed["memories"], PROFILE_MEMORIES)
 
@@ -609,9 +609,7 @@ class SetupTests(unittest.TestCase):
             ),
             (
                 '  # note = """\ndefault_permissions = ":workspace"\n',
-                lambda parsed: self.assertEqual(
-                    parsed["default_permissions"], ":danger-full-access"
-                ),
+                lambda parsed: self.assertEqual(parsed["default_permissions"], "mark"),
             ),
             (
                 '  # note = 1\nmodel = "gpt-6-sol"\n',
@@ -688,6 +686,76 @@ class SetupTests(unittest.TestCase):
         )
         parsed = tomllib.loads(merge_config.merged_config("", remembered))
         self.assertEqual(parsed["memories"], tomllib.loads(remembered)["memories"])
+
+    def test_profile_tables_are_the_sandbox(self):
+        mark = tomllib.loads((ROOT / "mark.config.toml").read_text())["permissions"][
+            "mark"
+        ]
+        self.assertEqual(set(mark), {"description", "filesystem", "network"})
+        self.assertEqual(
+            mark["description"],
+            "Every Codex run: writes only to the workspace, its git folder and named folders; secrets and host bridges denied.",
+        )
+        self.assertEqual(
+            mark["filesystem"],
+            {
+                ":root": "read",
+                ":tmpdir": "write",
+                ":slash_tmp": "write",
+                "~/.cache": "write",
+                "~/.npm": "write",
+                "~/.ansible/tmp": "write",
+                "~/.claude": "write",
+                "~/Documents/Second_Brain": "write",
+                "~/Documents/lockbox": "deny",
+                "~/.codex/auth.json": "deny",
+                "~/.claude/.credentials.json": "deny",
+                "~/.var/app": "deny",
+                "~/.config/google-chrome": "deny",
+                "~/.config/chromium": "deny",
+                "~/.config/BraveSoftware": "deny",
+                "~/.mozilla": "deny",
+                "~/.config/Bitwarden CLI": "deny",
+                "~/.npmrc": "deny",
+                "~/.ansible/galaxy_token": "deny",
+                "~/.openrig/secrets": "deny",
+                "~/.openrig/private": "deny",
+                "~/.openrig/activity-hook-token": "deny",
+                "~/.config/herdr": "deny",
+                "/home": "deny",
+                "/run/host": "deny",
+                "/run/user/1000": "deny",
+                ":workspace_roots": {".": "write", ".git": "write"},
+            },
+        )
+        self.assertEqual(mark["network"], {"enabled": True})
+
+    def test_install_replaces_old_full_access_profile(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            config = home / ".codex/config.toml"
+            config.parent.mkdir()
+            original = (
+                'default_permissions = ":danger-full-access"\n'
+                'model = "gpt-test"\n\n'
+                '[permissions.mark]\nextends = ":workspace"\n\n'
+                "[permissions.mark.workspace_roots]\n"
+                '"~/Documents/Second_Brain/10_Projects" = true\n\n'
+                '[permissions.other]\nextends = ":read-only"\n'
+            )
+            config.write_text(original)
+            _, output = install(home)
+            backups = list(config.parent.glob("config.toml.bak-*"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_bytes(), original.encode())
+            self.assertEqual(
+                output, f"Backup: {backups[0]}\n" + configured_line(config)
+            )
+            parsed = tomllib.loads(config.read_text())
+            self.assertEqual(parsed["default_permissions"], "mark")
+            self.assertEqual(parsed["permissions"]["mark"], PROFILE_MARK)
+            self.assertEqual(parsed["permissions"]["other"], {"extends": ":read-only"})
+            self.assertEqual(parsed["model"], "gpt-test")
 
 
 if __name__ == "__main__":
