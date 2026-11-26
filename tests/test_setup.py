@@ -203,7 +203,7 @@ class SetupTests(unittest.TestCase):
             config = home / ".codex/config.toml"
             config.parent.mkdir()
             config.write_text(
-                'default_permissions = ":danger-full-access"\n'
+                'default_permissions = "mark"\n'
                 "background_terminal_max_timeout = 3600000\n"
             )
             _, output = install(home)
