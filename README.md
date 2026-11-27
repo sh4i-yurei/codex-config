@@ -20,7 +20,7 @@ The base `~/.codex/config.toml` belongs to the machine and is never replaced by 
 Setup makes every `codex` run, plain or `codex exec`, use the `mark` permission profile
 that setup copies into `~/.codex/config.toml`. It runs commands in a sandbox that writes
 only to the workspace and its own `.git`, the temporary folders, `~/.cache`, `~/.npm`,
-`~/.ansible/tmp`, `~/.claude` and the notes vault, and denies staged secrets, sign-in
+`~/.ansible/tmp` and the notes vault, and denies staged secrets, sign-in
 files, browser data, the other mounts of the home folder and the host bridges. A main
 checkout commits as it is. To commit from a git worktree, start Codex there with
 `--add-dir "$(git rev-parse --absolute-git-dir)" --add-dir "$(git rev-parse --path-format=absolute --git-common-dir)"`.

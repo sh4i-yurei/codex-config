@@ -705,7 +705,6 @@ class SetupTests(unittest.TestCase):
                 "~/.cache": "write",
                 "~/.npm": "write",
                 "~/.ansible/tmp": "write",
-                "~/.claude": "write",
                 "~/Documents/Second_Brain": "write",
                 "~/Documents/lockbox": "deny",
                 "~/.codex/auth.json": "deny",
